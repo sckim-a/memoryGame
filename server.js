@@ -52,14 +52,17 @@ io.on('connection', (socket) => {
 
     rooms[id] = {
       id,
-      maxPlayers,
+      title: title || '메모리 게임', // ⭐ 기본값
+      mode: mode || 'number',
+      maxPlayers: maxPlayers || 4,
+      host: socket.id,
       started: false,
       turn: 1,
       currentPlayer: 0,
-      openCards: [],
       combo: 0,
+      openCards: [],
       cards: [],
-      players: []
+      players: [{ id: socket.id, name: nickname, score: 0 }]
     };
 
     console.log('방 생성:', id);
@@ -168,4 +171,5 @@ function startGame(roomId) {
 
 server.listen(PORT, () => {
   console.log('서버 실행:', PORT);
+
 });
