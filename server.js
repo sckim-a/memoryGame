@@ -52,7 +52,7 @@ io.on('connection', (socket) => {
   socket.on('createRoom', ({ nickname, title, maxPlayers = 5, mode }) => {
     const id = Math.random().toString(36).substring(2, 6);
 
-    rooms[id] = {
+    const rooms = {
       id,
       title: title || '메모리 게임', // ⭐ 기본값
       mode: mode || 'number',
@@ -68,7 +68,19 @@ io.on('connection', (socket) => {
     };
 
     console.log('방 생성:', id);
-    socket.emit('roomCreated', rooms[id]);
+    //socket.emit('roomCreated', rooms[id]);
+    //io.emit('roomList', getRoomList());
+
+    rooms[id] = room;
+    
+    socket.join(id); // ⭐ 중요
+    room.players.push({
+      id: socket.id,
+      name: nickname,
+      score: 0
+    });
+  
+    socket.emit('joinedRoom', room); // ⭐ 화면 전환 트리거
     io.emit('roomList', getRoomList());
   });
 
@@ -175,6 +187,7 @@ server.listen(PORT, () => {
   console.log('서버 실행:', PORT);
 
 });
+
 
 
 
