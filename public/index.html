@@ -1,145 +1,46 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<title>온라인 메모리 게임</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-
-<style>
-body { margin:0; font-family:Arial; background:#111; color:#fff; }
-button,input,select { padding:8px; margin:4px; border-radius:6px; }
-.screen { display:none; padding:20px; }
-.active { display:block; }
-.room { background:#222; padding:10px; margin:6px 0; border-radius:8px; cursor:pointer; }
-.card { background:#444; height:80px; display:flex; align-items:center; justify-content:center;
-        font-size:26px; border-radius:10px; cursor:pointer; }
-.card.open { background:#fff; color:#000; }
-.card.removed { visibility:hidden; }
-#board { display:grid; grid-template-columns:repeat(auto-fill,minmax(60px,1fr)); gap:10px; }
-.player { background:#222; padding:6px 10px; border-radius:6px; font-size:13px; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>메모리 게임</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
 
+<!-- ===== 메인 화면 ===== -->
 <div id="main" class="screen active">
   <h1>🧠 메모리 게임</h1>
 
-  <input id="nick" placeholder="닉네임">
-  <button onclick="saveNick()">저장</button>
+  <input id="nickname" placeholder="닉네임 입력" />
+  <button onclick="saveNickname()">닉네임 저장</button>
 
-  <h3>방 만들기</h3>
-  <input id="roomTitle" placeholder="방 제목">
-  <select id="roomMode">
-    <option value="number">숫자</option>
-    <option value="emoji">이모지</option>
-  </select>
-  <select id="roomMax">
-    <option>2</option><option>3</option><option>4</option><option>5</option>
-  </select>
-  <button onclick="createRoom()">방 생성</button>
+  <hr />
+
+  <button onclick="createRoom()">방 만들기</button>
 
   <h3>방 목록</h3>
-  <div id="rooms"></div>
+  <ul id="roomList"></ul>
 </div>
 
+<!-- ===== 게임 화면 ===== -->
 <div id="game" class="screen">
-  <h2 id="title"></h2>
+  <h2 id="roomTitle"></h2>
+
   <div id="players"></div>
-  <div id="turn"></div>
-  <button id="startBtn" style="display:none" onclick="startGame()">게임 시작</button>
+
+  <button id="startBtn" onclick="startGame()" style="display:none">
+    방장 시작
+  </button>
+
+  <h4 id="turnInfo"></h4>
+
   <div id="board"></div>
+
+  <button onclick="location.reload()">나가기</button>
 </div>
 
-<script>
-const socket = io('https://memorygame-hg6s.onrender.com');
-
-let nickname = localStorage.getItem('nick') || '';
-let roomId = null;
-let myId = null;
-
-document.getElementById('nick').value = nickname;
-
-const sndFlip = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3');
-const sndOk   = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3');
-const sndFail = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3');
-
-function saveNick(){
-  nickname = document.getElementById('nick').value;
-  localStorage.setItem('nick', nickname);
-}
-
-socket.on('connect', ()=> {
-  myId = socket.id;
-  socket.emit('requestRoomList');
-});
-
-function createRoom(){
-  socket.emit('createRoom',{
-    nickname,
-    title: roomTitle.value,
-    maxPlayers: Number(roomMax.value),
-    mode: roomMode.value
-  });
-}
-
-socket.on('roomList', list=>{
-  rooms.innerHTML='';
-  list.forEach(r=>{
-    const d=document.createElement('div');
-    d.className='room';
-    d.textContent=`${r.title} (${r.players}/${r.max}) [${r.started}]`;
-    d.onclick=()=>socket.emit('joinRoom',{roomId:r.id,nickname});
-    rooms.appendChild(d);
-  });
-});
-
-socket.on('joinedRoom', room=>{
-  roomId = room.id;
-  main.classList.remove('active');
-  game.classList.add('active');
-  title.textContent = room.title;
-  render(room);
-
-  if(room.host === myId){
-    startBtn.style.display='block';
-  }
-});
-
-function startGame(){
-  if (!roomId) return;
-  socket.emit('startGame',{roomId});
-}
-
-socket.on('gameStarted', room=>{
-  render(room);
-});
-
-socket.on('update', room=>{
-  render(room);
-});
-
-function render(room){
-  players.innerHTML='';
-  room.players.forEach(p=>{
-    players.innerHTML+=`<div class='player'>${p.name}: ${p.score}</div>`;
-  });
-  turn.textContent = `턴 ${room.turn}`;
-
-  board.innerHTML='';
-  room.cards.forEach((c,i)=>{
-    const d=document.createElement('div');
-    d.className='card';
-    if(c.open) d.classList.add('open');
-    if(c.removed) d.classList.add('removed');
-    d.textContent = c.open ? c.value : '';
-    d.onclick=()=>{ sndFlip.play(); socket.emit('flipCard',{roomId,index:i}); };
-    board.appendChild(d);
-  });
-}
-</script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="client.js"></script>
 </body>
 </html>
-
-
