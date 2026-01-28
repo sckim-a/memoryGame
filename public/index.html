@@ -89,7 +89,7 @@ socket.on('roomList', list=>{
   list.forEach(r=>{
     const d=document.createElement('div');
     d.className='room';
-    d.textContent=`${r.title} (${r.players}/${r.max}) [${r.mode}]`;
+    d.textContent=`${r.title} (${r.players}/${r.max}) [${r.started}]`;
     d.onclick=()=>socket.emit('joinRoom',{roomId:r.id,nickname});
     rooms.appendChild(d);
   });
@@ -140,3 +140,4 @@ function render(room){
 </script>
 </body>
 </html>
+
