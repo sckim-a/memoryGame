@@ -2,20 +2,31 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>메모리 게임</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<!-- ===== 메인 화면 ===== -->
+<!-- 메인 화면 -->
 <div id="main" class="screen active">
   <h1>🧠 메모리 게임</h1>
 
-  <input id="nickname" placeholder="닉네임 입력" />
-  <button onclick="saveNickname()">닉네임 저장</button>
+  <input id="nicknameInput" placeholder="닉네임" />
+  <button onclick="saveNickname()">저장</button>
 
-  <hr />
+  <h3>방 만들기</h3>
+  <input id="roomTitle" placeholder="방 제목" />
+
+  <select id="maxPlayers">
+    <option value="2">2명</option>
+    <option value="3">3명</option>
+    <option value="4">4명</option>
+  </select>
+
+  <select id="gameMode">
+    <option value="number">숫자</option>
+    <option value="emoji">이모지</option>
+  </select>
 
   <button onclick="createRoom()">방 만들기</button>
 
@@ -23,21 +34,17 @@
   <ul id="roomList"></ul>
 </div>
 
-<!-- ===== 게임 화면 ===== -->
+<!-- 게임 화면 -->
 <div id="game" class="screen">
-  <h2 id="roomTitle"></h2>
+  <h2 id="roomTitleText"></h2>
 
   <div id="players"></div>
 
-  <button id="startBtn" onclick="startGame()" style="display:none">
-    방장 시작
-  </button>
-
-  <h4 id="turnInfo"></h4>
+  <button id="startBtn" onclick="startGame()">게임 시작</button>
 
   <div id="board"></div>
 
-  <button onclick="location.reload()">나가기</button>
+  <button onclick="leaveRoom()">나가기</button>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
