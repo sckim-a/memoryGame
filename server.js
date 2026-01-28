@@ -30,6 +30,7 @@ function createDeck() {
 function getRoomList() {
   return Object.values(rooms).map(r => ({
     id: r.id,
+    title: r.title,
     players: r.players.length,
     max: r.maxPlayers,
     status: r.started ? '진행중' : '대기중'
@@ -174,5 +175,6 @@ server.listen(PORT, () => {
   console.log('서버 실행:', PORT);
 
 });
+
 
 
