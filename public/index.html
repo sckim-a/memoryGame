@@ -108,6 +108,7 @@ socket.on('joinedRoom', room=>{
 });
 
 function startGame(){
+  if (!roomId) return;
   socket.emit('startGame',{roomId});
 }
 
@@ -140,4 +141,5 @@ function render(room){
 </script>
 </body>
 </html>
+
 
