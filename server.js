@@ -5,6 +5,7 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
+app.use(express.static('public')); // ⭐ client 제공
 const io = new Server(server, {
   cors: { origin: '*' }
 });
@@ -173,3 +174,4 @@ server.listen(PORT, () => {
   console.log('서버 실행:', PORT);
 
 });
+
