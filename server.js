@@ -160,7 +160,22 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('종료:', socket.id);
     for (const room of Object.values(rooms)) {
-      room.players = room.players.filter(p => p.id !== socket.id);
+      const idx = room.players.findIndex(p => p.id === socket.id);
+      if (idx !== -1) {
+        room.players.splice(idx, 1);
+  
+        // 방장 나가면 방 삭제 or 위임
+        if (room.host === socket.id) {
+          delete rooms[room.id];
+          io.emit('roomList', getRoomList());
+          return;
+        }
+  
+        // 인원 없으면 방 삭제
+        if (room.players.length === 0) {
+          delete rooms[room.id];
+        }
+      }
     }
     io.emit('roomList', getRoomList());
   });
@@ -187,6 +202,7 @@ server.listen(PORT, () => {
   console.log('서버 실행:', PORT);
 
 });
+
 
 
 
