@@ -1,143 +1,113 @@
-// =============================
-// Socket 연결
-// =============================
 const socket = io();
 
-// =============================
-// DOM
-// =============================
 const main = document.getElementById('main');
 const game = document.getElementById('game');
-const roomListEl = document.getElementById('roomList');
-const playersEl = document.getElementById('players');
-const boardEl = document.getElementById('board');
-const titleEl = document.getElementById('roomTitle');
-const turnEl = document.getElementById('turnInfo');
-const startBtn = document.getElementById('startBtn');
+const roomList = document.getElementById('roomList');
+const board = document.getElementById('board');
+const playersDiv = document.getElementById('players');
 
-// =============================
-// 상태
-// =============================
-let nickname = localStorage.getItem('nickname');
-let roomId = null;
-let myId = null;
+let nickname = '';
 let currentRoom = null;
 
-// =============================
-// 닉네임
-// =============================
-function saveNickname() {
-  const v = document.getElementById('nickname').value;
-  if (!v) return alert('닉네임 입력');
-  nickname = v;
-  localStorage.setItem('nickname', v);
+// 화면 전환
+function showMain() {
+  main.classList.add('active');
+  game.classList.remove('active');
 }
 
-// =============================
-// 방 만들기
-// =============================
-function createRoom() {
-  if (!nickname) return alert('닉네임 먼저');
-  socket.emit('createRoom', {
-    nickname,
-    title: '메모리 게임',
-    maxPlayers: 4,
-    mode: 'number'
-  });
-}
-
-// =============================
-// 게임 시작 (방장)
-// =============================
-function startGame() {
-  if (!roomId) return;
-  socket.emit('startGame', { roomId });
-}
-
-// =============================
-// 방 목록 렌더
-// =============================
-socket.on('roomList', rooms => {
-  roomListEl.innerHTML = '';
-  rooms.forEach(r => {
-    const li = document.createElement('li');
-    li.textContent = `${r.title} (${r.players}/${r.max}) - ${r.status}`;
-    li.onclick = () => {
-      socket.emit('joinRoom', { roomId: r.id, nickname });
-    };
-    roomListEl.appendChild(li);
-  });
-});
-
-// =============================
-// 방 입장 완료
-// =============================
-socket.on('joinedRoom', room => {
-  roomId = room.id;
-  currentRoom = room;
-
+function showGame() {
   main.classList.remove('active');
   game.classList.add('active');
+}
 
-  render(room);
+// 닉네임 저장
+function saveNickname() {
+  nickname = nicknameInput.value;
+}
+
+// 방 생성
+function createRoom() {
+  socket.emit('createRoom', {
+    nickname,
+    title: roomTitle.value,
+    maxPlayers: maxPlayers.value,
+    mode: gameMode.value
+  });
+}
+
+// 방 입장
+function joinRoom(id) {
+  socket.emit('joinRoom', { roomId: id, nickname });
+  showGame();
+}
+
+// 게임 시작
+function startGame() {
+  socket.emit('startGame', currentRoom.id);
+}
+
+// 나가기
+function leaveRoom() {
+  location.reload();
+}
+
+// 카드 클릭 (모바일 대응)
+function flip(index) {
+  socket.emit('flipCard', {
+    roomId: currentRoom.id,
+    index
+  });
+}
+
+// 방 목록 갱신
+socket.on('roomList', rooms => {
+  roomList.innerHTML = '';
+  rooms.forEach(r => {
+    const li = document.createElement('li');
+    li.textContent = `${r.title} (${r.players.length}/${r.maxPlayers})`;
+    li.onclick = () => joinRoom(r.id);
+    roomList.appendChild(li);
+  });
 });
 
-// =============================
-// 게임 상태 업데이트
-// =============================
-socket.on('update', room => {
+// 방 상태 업데이트
+socket.on('roomUpdate', room => {
   currentRoom = room;
-  render(room);
-});
 
-// =============================
-// 렌더링
-// =============================
-function render(room) {
-  titleEl.textContent = room.title;
-
-  // 플레이어 목록
-  playersEl.innerHTML = room.players
-    .map((p, i) =>
-      `${i === room.currentPlayer ? '👉' : ''}${p.name}: ${p.score}`
-    )
+  playersDiv.innerHTML = room.players
+    .map(p => `${p.nickname} (${p.score})`)
     .join('<br>');
 
-  turnEl.textContent = `턴: ${room.turn}`;
+  renderBoard();
+});
 
-  // 방장만 시작 버튼
-  startBtn.style.display =
-    socket.id === room.host && !room.started ? 'block' : 'none';
+// 게임 시작
+socket.on('gameStarted', room => {
+  currentRoom = room;
+  renderBoard();
+});
 
-  // 카드 보드
-  boardEl.innerHTML = '';
-  room.cards.forEach((c, i) => {
+// 카드 렌더링
+function renderBoard() {
+  board.innerHTML = '';
+
+  if (!currentRoom.started) {
+    board.innerHTML = '<p>게임 대기중...</p>';
+    return;
+  }
+
+  currentRoom.cards.forEach((card, i) => {
     const div = document.createElement('div');
     div.className = 'card';
 
-    if (c.removed) {
-      div.classList.add('removed');
-    } else if (c.open) {
-      div.textContent = c.value;
-    } else {
-      div.textContent = '?';
+    if (card.open) {
+      div.classList.add('open');
+      div.textContent = card.value;
     }
 
-    // PC 클릭 + 모바일 터치 대응
-    div.addEventListener('click', () => flip(i));
-    div.addEventListener('touchstart', e => {
-      e.preventDefault();
-      flip(i);
-    });
+    div.onclick = () => flip(i);
+    div.ontouchstart = () => flip(i);
 
-    boardEl.appendChild(div);
+    board.appendChild(div);
   });
-}
-
-// =============================
-// 카드 뒤집기
-// =============================
-function flip(index) {
-  if (!currentRoom?.started) return;
-  socket.emit('flipCard', { roomId, index });
 }
