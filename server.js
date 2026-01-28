@@ -48,7 +48,7 @@ io.on('connection', (socket) => {
     socket.emit('roomList', getRoomList());
   });
 
-  socket.on('createRoom', ({ nickname, maxPlayers = 5 }) => {
+  socket.on('createRoom', ({ nickname, title, maxPlayers = 5, mode }) => {
     const id = Math.random().toString(36).substring(2, 6);
 
     rooms[id] = {
@@ -174,4 +174,5 @@ server.listen(PORT, () => {
   console.log('서버 실행:', PORT);
 
 });
+
 
