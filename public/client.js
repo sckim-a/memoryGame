@@ -7,6 +7,10 @@ const roomList = document.getElementById('roomList');
 const playersDiv = document.getElementById('players');
 const turnDiv = document.getElementById('turn');
 const startBtn = document.getElementById('startBtn');
+const nicknameInput = document.getElementById('nickname');
+const roomTitleInput = document.getElementById('roomTitle');
+const maxPlayersSelect = document.getElementById('maxPlayers');
+const modeSelect = document.getElementById('mode');
 
 let nickname = '';
 let currentRoom = null;
@@ -23,12 +27,16 @@ function showGame() {
 }
 
 function createRoom() {
-  nickname = nicknameInput.value;
+  nickname = nicknameInput.value.trim();
+  if (!nickname) {
+    alert('닉네임을 입력하세요');
+    return;
+  }
   socket.emit('createRoom', {
     nickname,
-    title: roomTitle.value,
-    maxPlayers: Number(maxPlayers.value),
-    mode: mode.value
+    title: roomTitleInput.value || '메모리 게임',
+    maxPlayers: Number(maxPlayersSelect.value),
+    mode: modeSelect.value
   });
 }
 
