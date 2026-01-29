@@ -67,6 +67,8 @@ function startGame() {
 }
 
 socket.on('gameStarted', room => {
+  console.log('🎴 cards:', room.cards);
+  currentRoom = room;
   showGame(room);
   renderCards(room.cards);
 });
