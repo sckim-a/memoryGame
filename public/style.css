@@ -33,6 +33,7 @@ body {
   border-radius: 8px;
   touch-action: manipulation;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .card.open {
