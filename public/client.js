@@ -8,6 +8,8 @@ const board = document.getElementById('board');
 const playersDiv = document.getElementById('players');
 const roomTitle = document.getElementById('roomTitle');
 const startBtn = document.getElementById('startBtn');
+const turnInfo = document.getElementById('turnInfo');
+const currentPlayerDiv = document.getElementById('currentPlayer');
 
 socket.on('roomList', rooms => {
   console.log('🔥 roomList raw data:', rooms);
@@ -82,9 +84,26 @@ function showGame(room) {
 }
 
 function renderPlayers(players) {
-  playersDiv.innerHTML = players.map(p =>
-    `${p.nickname}: ${p.score}`
-  ).join('<br>');
+  playersDiv.innerHTML = '';
+
+  players.forEach((p, idx) => {
+    const div = document.createElement('div');
+
+    div.textContent = `${p.nickname} : ${p.score}점`;
+
+    // ⭐ 현재 차례 강조
+    if (idx === currentRoom.turnIndex) {
+      div.classList.add('active-player');
+      currentPlayerDiv.textContent = `현재 차례: ${p.nickname}`;
+    }
+
+    playersDiv.appendChild(div);
+  });
+
+  // TURN 표시
+  turnInfo.textContent = `TURN ${Math.floor(
+    currentRoom.turnIndex / players.length
+  ) + 1}`;
 }
 
 function renderCards(cards) {
