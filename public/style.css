@@ -14,25 +14,58 @@ body {
 #board {
   display: grid;
   grid-template-columns: repeat(4, 70px);
-  gap: 10px;
+  gap: 6px;
   justify-content: center;
   margin-top: 20px;
 }
 
 .card {
-  width: 70px;
-  height: 70px;
+  aspect-ratio: 3 / 4;
+  width: 100%;
+  max-width: 80px;
   background: #444;
   color: white;
-  font-size: 32px;
+  font-size: clamp(16px, 4vw, 28px);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   border-radius: 8px;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .card.open {
   background: #fff;
   color: #000;
+}
+
+.card:active {
+  transform: scale(0.95);
+}
+
+/* 데스크탑 */
+@media (min-width: 900px) {
+  #board {
+    grid-template-columns: repeat(8, 1fr);
+  }
+}
+
+/* 태블릿 */
+@media (max-width: 899px) {
+  #board {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+/* 모바일 */
+@media (max-width: 600px) {
+  #board {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+#game {
+  height: 100dvh;
+  overflow-y: auto;
 }
