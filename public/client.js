@@ -53,6 +53,7 @@ function joinRoom(id) {
 }
 
 socket.on('joinedRoom', room => {
+  console.log('✅ joinedRoom:', room.id);
   currentRoom = room;
   showGame(room);
 });
