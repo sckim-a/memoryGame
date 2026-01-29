@@ -30,6 +30,10 @@ function createRoom() {
 }
 
 function joinRoom(id) {
+  if (!nickname.value.trim()) {
+    alert('닉네임을 입력하세요');
+    return;
+  }
   socket.emit('joinRoom', {
     roomId: id,
     nickname: nickname.value
