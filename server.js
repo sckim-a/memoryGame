@@ -45,6 +45,7 @@ io.on('connection', socket => {
       maxPlayers,
       host: socket.id,
       started: false,
+      status: 'waiting', // waiting | playing
       turn: 1,
       currentPlayer: 0,
       combo: 0,
@@ -128,3 +129,4 @@ io.on('connection', socket => {
 server.listen(3000, () =>
   console.log('http://localhost:3000')
 );
+
