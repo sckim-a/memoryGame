@@ -8,6 +8,7 @@ const playersDiv = document.getElementById('players');
 
 let nickname = '';
 let currentRoom = null;
+let locked = false;
 
 // 화면 전환
 function showMain() {
@@ -109,5 +110,17 @@ function renderBoard() {
     div.ontouchstart = () => flip(i);
 
     board.appendChild(div);
+  });
+
+  function onCardClick(index) {
+    if (locked) return;
+    socket.emit('flipCard', { roomId, index });
+  }
+    
+  socket.on('updateBoard', room => {
+    renderBoard(room);
+  
+    // 2장 열려있으면 잠금
+    locked = room.openCards.length === 2;
   });
 }
