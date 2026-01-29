@@ -58,7 +58,8 @@ io.on('connection', socket => {
         flipped: []
       }],
       cards: [],
-      turnIndex: 0
+      turnIndex: 0,
+      turnCount: 1
     };
 
     socket.join(id);
@@ -90,7 +91,9 @@ io.on('connection', socket => {
 
     room.status = 'playing';
     room.cards = createCards(room.mode);
-
+    room.turnIndex = 0;
+    room.turnCount = 1;
+    
     io.to(roomId).emit('gameStarted', room);
     emitRoomList();
   });
@@ -123,7 +126,11 @@ io.on('connection', socket => {
         player.streak = 0;
         setTimeout(() => {
           c1.open = c2.open = false;
-          room.turnIndex = (room.turnIndex + 1) % room.players.length;
+          room.turnIndex++;
+          if (room.turnIndex >= room.players.length) {
+            room.turnIndex = 0;
+            room.turnCount++; // ✅ 모든 플레이어가 한 번씩 끝남
+          }
           io.to(roomId).emit('cardUpdate', room.cards);
           io.to(roomId).emit('updateRoom', room);
         }, 800);
@@ -151,4 +158,5 @@ io.on('connection', socket => {
 });
 
 server.listen(3000, () => console.log('서버 실행중'));
+
 
