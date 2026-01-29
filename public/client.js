@@ -10,11 +10,17 @@ const roomTitle = document.getElementById('roomTitle');
 const startBtn = document.getElementById('startBtn');
 
 socket.on('roomList', rooms => {
+  console.log('🔥 roomList raw data:', rooms);
+
   const list = document.getElementById('roomList');
   list.innerHTML = '';
+
   rooms.forEach(r => {
+    console.log('👉 room item:', r);
+
     const li = document.createElement('li');
-    li.textContent = `${r.title} (${r.players}/${r.maxPlayers}) - ${r.status}`;
+    li.textContent =
+      `${r.title} (${r.players}/${r.maxPlayers}) - ${r.status}`;
     li.onclick = () => joinRoom(r.id);
     list.appendChild(li);
   });
