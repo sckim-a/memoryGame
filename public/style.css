@@ -50,7 +50,7 @@ body {
   height: 100%;
   background: #333;
   color: white;
-  font-size: clamp(16px, 4vw, 36px);
+  font-size: clamp(24px, 5vw, 48px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -85,16 +85,41 @@ body {
   }
 }
 
+#gameHeader {
+  display: flex;
+  justify-content: space-between;
+  padding: 1vh 3vw;
+  font-size: clamp(18px, 3vw, 28px);
+  font-weight: bold;
+  color: #fff;
+  background: #222;
+}
+
 #game {
   display: flex;
   flex-direction: column;
   width: 100vw;
   height: 100vh;
 }
-
+/*
 #players {
   flex: 0 0 60px;
   font-size: clamp(12px, 2vw, 18px);
   text-align: center;
 }
+*/
+#players div {
+  font-size: clamp(16px, 2.5vw, 22px);
+  padding: 6px 0;
+  color: #ccc;
+}
+
+.active-player {
+  color: #00ffcc;
+  font-size: clamp(18px, 3vw, 26px);
+  background: rgba(0, 255, 204, 0.15);
+  border-radius: 8px;
+  padding: 6px;
+}
+
 
