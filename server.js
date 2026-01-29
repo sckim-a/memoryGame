@@ -13,19 +13,35 @@ app.use(express.static('public'));
 const rooms = {};
 
 // 카드 덱 생성
-function createDeck(mode) {
-  let base;
+function createDeck(mode, images = []) {
+  let base = [];
 
   if (mode === 'emoji') {
-    base = ['🍎','🍌','🐶','🚗','⚽','🎮','🎧','📱'];
-  } else {
-    base = Array.from({ length: 8 }, (_, i) => i + 1);
+    base = [
+      '🍎','🍌','🐶','🚗','⚽','🎮','🎧','📱',
+      '🧠','🔥','🌈','⭐','🎲','🎯','🎵','🎨',
+      '🚀','🛸','🐱','🐸','🍕','🍔','🍩','🍓'
+    ];
+  } 
+  else if (mode === 'image') {
+    base = images.slice(0, 24);
+  } 
+  else {
+    base = Array.from({ length: 24 }, (_, i) => i + 1);
   }
 
-  const values = [...base, ...base];
-  return values
+  // ⭐ 무조건 24개 확보
+  base = base.slice(0, 24);
+
+  const deck = [...base, ...base] // 24쌍
     .sort(() => Math.random() - 0.5)
-    .map(v => ({ value: v, open: false, removed: false }));
+    .map(v => ({
+      value: v,
+      open: false,
+      removed: false
+    }));
+
+  return deck;
 }
 
 io.on('connection', socket => {
@@ -75,12 +91,52 @@ io.on('connection', socket => {
   socket.on('flipCard', ({ roomId, index }) => {
     const room = rooms[roomId];
     if (!room || !room.started) return;
-
+  
+    // 🔒 2장 열려있으면 더 못 누름
+    if (room.openCards.length === 2) return;
+  
     const card = room.cards[index];
     if (card.open || card.removed) return;
-
+  
     card.open = true;
-    io.to(roomId).emit('roomUpdate', room);
+    room.openCards.push(index);
+  
+    io.to(roomId).emit('updateBoard', room);
+  
+    if (room.openCards.length === 2) {
+      const [a, b] = room.openCards;
+      const c1 = room.cards[a];
+      const c2 = room.cards[b];
+  
+      if (c1.value === c2.value) {
+        // ✅ 맞췄을 때
+        c1.removed = true;
+        c2.removed = true;
+        room.openCards = [];
+        room.combo++;
+  
+        room.players[room.currentPlayer].score += room.combo;
+  
+        io.to(roomId).emit('updateBoard', room);
+      } 
+      else {
+        // ❌ 틀렸을 때
+        room.combo = 0;
+  
+        setTimeout(() => {
+          c1.open = false;
+          c2.open = false;
+          room.openCards = [];
+  
+          room.currentPlayer =
+            (room.currentPlayer + 1) % room.players.length;
+  
+          if (room.currentPlayer === 0) room.turn++;
+  
+          io.to(roomId).emit('updateBoard', room);
+        }, 800);
+      }
+    }
   });
 
   socket.on('disconnect', () => {
@@ -95,3 +151,4 @@ io.on('connection', socket => {
 server.listen(3000, () => {
   console.log('✅ Server running on http://localhost:3000');
 });
+
