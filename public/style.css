@@ -36,3 +36,7 @@ body {
 .card.back {
   background: #222;
 }
+
+.card.removed {
+  visibility: hidden;
+}
