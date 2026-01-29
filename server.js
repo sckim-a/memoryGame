@@ -79,6 +79,7 @@ io.on('connection', socket => {
     });
 
     socket.join(roomId);
+    socket.emit('joinedRoom', room);
     io.to(roomId).emit('updateRoom', room);
     emitRoomList();
   });
@@ -150,3 +151,4 @@ io.on('connection', socket => {
 });
 
 server.listen(3000, () => console.log('서버 실행중'));
+
