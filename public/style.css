@@ -65,10 +65,17 @@ html, body {
    게임 전체 레이아웃
 ===================== */
 #game {
-  display: flex;
+  display: none;
   flex-direction: column;
   width: 100vw;
   height: 100vh; /* 🔥 반드시 필요 */
+}
+#game.active {
+  display: flex;
+}
+
+#lobby.hidden {
+  display: none;
 }
 #topBar {
   flex: 0 0 auto;
