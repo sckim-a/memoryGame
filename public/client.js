@@ -17,10 +17,14 @@ socket.on('roomList', rooms => {
 
   rooms.forEach(r => {
     console.log('👉 room item:', r);
-
+    
+    const count = Array.isArray(r.players)
+      ? r.players.length
+      : r.players;
+    
     const li = document.createElement('li');
     li.textContent =
-      `${r.title} (${r.players}/${r.maxPlayers}) - ${r.status}`;
+      `${r.title} (${count}/${r.maxPlayers}) - ${r.status}`;
     li.onclick = () => joinRoom(r.id);
     list.appendChild(li);
   });
