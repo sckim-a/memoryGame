@@ -55,7 +55,7 @@ function joinRoom(id) {
 socket.on('joinedRoom', room => {
   console.log('✅ joinedRoom:', room.id);
   currentRoom = room;
-  showGame(room);
+  //showGame(room);
 });
 
 socket.on('updateRoom', room => {
@@ -104,7 +104,7 @@ function renderPlayers(players) {
   });
 
   // TURN 표시
-  turnInfo.textContent = `TURN ${room.turnCount}`;
+  turnInfo.textContent = `TURN ${currentRoom.turnCount}`;
 }
 
 function renderCards(cards) {
