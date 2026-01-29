@@ -54,6 +54,7 @@ function leaveRoom() {
 
 // 카드 클릭 (모바일 대응)
 function flip(index) {
+  if (locked) return;
   socket.emit('flipCard', {
     roomId: currentRoom.id,
     index
@@ -109,6 +110,14 @@ function renderBoard(room) {
     board.appendChild(div);
   });
 }
+
+socket.on('updateBoard', room => {
+    renderBoard(room);
+  
+    // 2장 열려있으면 잠금
+    locked = room.openCards.length === 2;
+});
+
 /*
 function renderBoard() {
   board.innerHTML = '';
