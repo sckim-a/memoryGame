@@ -89,6 +89,27 @@ socket.on('gameStarted', room => {
 });
 
 // 카드 렌더링
+function renderBoard(room) {
+  board.innerHTML = '';
+
+  room.cards.forEach((card, index) => {
+    const div = document.createElement('div');
+    div.className = 'card';
+
+    if (card.open || card.removed) {
+      div.textContent = card.value;
+    }
+
+    // 🔥 모바일 대응 이벤트
+    div.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      flip(index);
+    });
+
+    board.appendChild(div);
+  });
+}
+/*
 function renderBoard() {
   board.innerHTML = '';
 
@@ -123,4 +144,4 @@ function renderBoard() {
     // 2장 열려있으면 잠금
     locked = room.openCards.length === 2;
   });
-}
+}*/
