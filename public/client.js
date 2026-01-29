@@ -103,9 +103,7 @@ function renderPlayers(players) {
   });
 
   // TURN 표시
-  turnInfo.textContent = `TURN ${Math.floor(
-    currentRoom.turnIndex / players.length
-  ) + 1}`;
+  turnInfo.textContent = `TURN ${room.turnCount}`;
 }
 
 function renderCards(cards) {
