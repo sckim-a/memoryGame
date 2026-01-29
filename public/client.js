@@ -5,6 +5,9 @@ let currentRoom = null;
 const lobby = document.getElementById('lobby');
 const game = document.getElementById('game');
 const board = document.getElementById('board');
+const playersDiv = document.getElementById('players');
+const roomTitle = document.getElementById('roomTitle');
+const startBtn = document.getElementById('startBtn');
 
 socket.on('roomList', rooms => {
   const list = document.getElementById('roomList');
