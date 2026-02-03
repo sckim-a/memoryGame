@@ -30,8 +30,9 @@ function createDeck() {
 }
 
 io.on("connection", socket => {
-
+  console.log("connected:", socket.id);
   socket.on("createRoom", ({ roomId, nickname }) => {
+    console.log("createRoom received", roomId);
     rooms[roomId] = {
       host: socket.id,
       started: false,
@@ -163,5 +164,6 @@ io.on("connection", socket => {
 server.listen(PORT, () => {
   console.log("Server running on", PORT);
 });
+
 
 
