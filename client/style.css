@@ -1,0 +1,80 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 12px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f5f5f5;
+  text-align: center;
+}
+
+h2, h3 {
+  margin: 8px 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-top: 12px;
+}
+
+/* 카드 */
+.card {
+  aspect-ratio: 1 / 1;
+  background: #444;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.3s ease, background 0.3s;
+  transform-style: preserve-3d;
+}
+
+.card.flipped {
+  background: #ffffff;
+  color: #000;
+  transform: rotateY(180deg);
+}
+
+.card.removed {
+  visibility: hidden;
+}
+
+/* 실패 흔들림 */
+.card.shake {
+  animation: shake 0.35s;
+}
+
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-5px); }
+  100% { transform: translateX(0); }
+}
+
+/* 결과 */
+.result {
+  margin-top: 16px;
+  font-size: 18px;
+}
+
+/* 폭죽 */
+.firework {
+  margin-top: 12px;
+  font-size: 32px;
+  animation: pop 1s infinite;
+}
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
