@@ -2,24 +2,25 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>Memory Game</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="lobby">
-    <input id="nickname" placeholder="닉네임"/>
-    <input id="roomId" placeholder="방 ID"/>
-    <button onclick="createRoom()">방 만들기</button>
-    <button onclick="joinRoom()">참여</button>
-  </div>
 
-  <div id="game" class="hidden">
-    <div id="board"></div>
-    <div id="scores"></div>
-  </div>
+<div id="lobby">
+  <input id="nickname" placeholder="닉네임">
+  <input id="roomId" placeholder="방 ID">
+  <button onclick="createRoom()">방 만들기</button>
+  <button onclick="joinRoom()">참가</button>
+</div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="main.js"></script>
+<div id="game" style="display:none">
+  <div id="score"></div>
+  <div id="board"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="main.js"></script>
 </body>
 </html>
