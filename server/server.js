@@ -3,6 +3,15 @@ import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 👇 client 폴더를 정적 웹으로 제공
+app.use(express.static(path.join(__dirname, "../client")));
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
@@ -164,3 +173,4 @@ io.on("connection", socket => {
 server.listen(3000, () =>
   console.log("✅ Server running on http://localhost:3000")
 );
+
