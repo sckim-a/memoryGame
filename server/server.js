@@ -31,20 +31,21 @@ function createDeck() {
 
 io.on("connection", socket => {
   console.log("connected:", socket.id);
-  socket.on("createRoom", ({ roomId, nickname }) => {
-    console.log("createRoom received", roomId);
+  socket.on("createRoom", ({ nickname }) => {
+    const roomId = Math.random().toString(36).slice(2, 7);
+  
     rooms[roomId] = {
       host: socket.id,
       started: false,
       deck: createDeck(),
-    
+  
       playerOrder: [socket.id],
       turnIndex: 0,
       turnCount: 1,
-    
+  
       flipped: [],
-      failedCountInRound: 0, // 턴 계산용
-    
+      failedCountInRound: 0,
+  
       players: {
         [socket.id]: {
           nickname,
@@ -53,9 +54,15 @@ io.on("connection", socket => {
         }
       }
     };
-
+  
     socket.join(roomId);
-    io.to(roomId).emit("roomUpdate", rooms[roomId]);
+  
+    socket.emit("roomJoined", {
+      roomId,
+      players: rooms[roomId].players
+    });
+  
+    console.log("room created:", roomId);
   });
 
   socket.on("joinRoom", ({ roomId, nickname }) => {
@@ -164,6 +171,7 @@ io.on("connection", socket => {
 server.listen(PORT, () => {
   console.log("Server running on", PORT);
 });
+
 
 
 
