@@ -83,69 +83,72 @@ io.on("connection", socket => {
     // ❌ 내 차례 아니면 무시
     if (socket.id !== currentPlayerId) return;
   
-    // 같은 턴에서 2장 초과 방지
+    // ❌ 같은 차례에 2장 초과 방지
     if (room.flipped.length >= 2) return;
   
     room.flipped.push(card);
   
-    // ✅ 모든 플레이어에게 카드 공개
+    // ✅ 모두에게 카드 공개
     io.to(roomId).emit("cardFlipped", card);
   
-    if (room.flipped.length === 2) {
-      const [a, b] = room.flipped;
-      const player = room.players[currentPlayerId];
+    // 👉 아직 2장 안 됐으면 여기서 끝
+    if (room.flipped.length < 2) return;
   
-      if (a.value === b.value) {
-        // ✅ 성공
-        player.streak += 1;
-        player.score += player.streak;
+    /* =====================
+       여기부터는 "무조건 실행"
+       (성공 / 실패 공통 영역)
+    ====================== */
   
-        io.to(roomId).emit("pairMatched", {
-          cards: [a.id, b.id],
-          playerId: currentPlayerId,
-          streak: player.streak,
-          score: player.score
-        });
+    const [a, b] = room.flipped;
+    const player = room.players[currentPlayerId];
+    const isMatch = a.value === b.value;
   
-        room.deck = room.deck.filter(
-          c => c.id !== a.id && c.id !== b.id
-        );
+    if (isMatch) {
+      // ✅ 성공
+      player.streak += 1;
+      player.score += player.streak;
   
-        room.flipped = [];
+      io.to(roomId).emit("pairMatched", {
+        cards: [a.id, b.id],
+        playerId: currentPlayerId,
+        score: player.score,
+        streak: player.streak
+      });
   
-        // 🎯 턴 유지 (여기가 핵심)
-        if (room.deck.length === 0) {
-          io.to(roomId).emit("gameEnded", room.players);
-        }
+      room.deck = room.deck.filter(
+        c => c.id !== a.id && c.id !== b.id
+      );
   
-      } else {
-        // ❌ 실패
-        player.streak = 0;
+    } else {
+      // ❌ 실패
+      player.streak = 0;
   
-        io.to(roomId).emit("pairFailed", [a.id, b.id]);
+      io.to(roomId).emit("pairFailed", [a.id, b.id]);
   
-        room.flipped = [];
+      // 🔁 실패했을 때만 차례 이동
+      room.turnIndex = (room.turnIndex + 1) % room.playerOrder.length;
+      room.failedCountInRound++;
+    }
   
-        // 🔁 턴 넘기기
-        room.turnIndex++;
-        room.failedCountInRound++;
+    // 🔄 차례 종료 처리 (성공/실패 공통)
+    room.flipped = [];
   
-        if (room.turnIndex >= room.playerOrder.length) {
-          room.turnIndex = 0;
-        }
+    // 🔢 턴 카운트 증가
+    if (room.failedCountInRound >= room.playerOrder.length) {
+      room.turnCount++;
+      room.failedCountInRound = 0;
+    }
   
-        // 🔢 턴 카운트 증가 조건
-        if (room.failedCountInRound >= room.playerOrder.length) {
-          room.turnCount++;
-          room.failedCountInRound = 0;
-        }
+    // 🔔 차례 업데이트는 무조건 보낸다
+    io.to(roomId).emit("turnUpdate", {
+      currentPlayer: room.playerOrder[room.turnIndex],
+      turnCount: room.turnCount,
+      players: room.players
+    });
   
-        io.to(roomId).emit("turnUpdate", {
-          currentPlayer: room.playerOrder[room.turnIndex],
-          turnCount: room.turnCount,
-          players: room.players
-        });
-      }
+    // 🏁 게임 종료 체크
+    if (room.deck.length === 0) {
+      io.to(roomId).emit("gameEnded", room.players);
     }
   });
 
@@ -160,4 +163,5 @@ io.on("connection", socket => {
 server.listen(PORT, () => {
   console.log("Server running on", PORT);
 });
+
 
