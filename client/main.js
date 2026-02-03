@@ -11,6 +11,14 @@ function nicknameInput() {
   return document.getElementById("nickname").value.trim();
 }
 
+function createRoom() {
+  roomId = roomIdInput();
+  socket.emit("createRoom", {
+    roomId,
+    nickname: nicknameInput()
+  });
+}
+
 function joinRoom() {
   roomId = roomIdInput();
   socket.emit("joinRoom", {
