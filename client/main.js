@@ -3,12 +3,12 @@ let roomId = "";
 let deck = [];
 let locked = false;
 
-function createRoom() {
-  roomId = roomIdInput();
-  socket.emit("createRoom", {
-    roomId,
-    nickname: nicknameInput()
-  });
+function roomIdInput() {
+  return document.getElementById("roomId").value.trim();
+}
+
+function nicknameInput() {
+  return document.getElementById("nickname").value.trim();
 }
 
 function joinRoom() {
