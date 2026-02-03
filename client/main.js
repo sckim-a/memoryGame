@@ -19,12 +19,33 @@ function createRoom() {
   });
 }
 
+socket.on("roomUpdate", room => {
+  console.log("ROOM UPDATE:", room);
+
+  // 로비 상태 표시
+  document.getElementById("lobby").innerHTML = `
+    <h3>방 ID: ${roomId}</h3>
+    <ul>
+      ${Object.values(room.players)
+        .map(p => `<li>${p.nickname} (${p.score}점)</li>`)
+        .join("")}
+    </ul>
+    ${room.host === socket.id
+      ? `<button onclick="startGame()">게임 시작</button>`
+      : `<p>방장이 게임을 시작할 때까지 대기중...</p>`}
+  `;
+});
+
 function joinRoom() {
   roomId = roomIdInput();
   socket.emit("joinRoom", {
     roomId,
     nickname: nicknameInput()
   });
+}
+
+function startGame() {
+  socket.emit("startGame", roomId);
 }
 
 socket.on("gameStarted", cards => {
