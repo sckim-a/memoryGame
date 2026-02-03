@@ -1,7 +1,7 @@
 const socket = io();
 
 /* =====================
-   상태 변수
+   상태
 ===================== */
 let roomId = "";
 let myId = "";
@@ -17,7 +17,7 @@ let isMyTurn = false;
 const $ = id => document.getElementById(id);
 
 /* =====================
-   입력값
+   입력
 ===================== */
 const nicknameInput = () => $("nickname")?.value.trim();
 const roomIdInput = () => $("roomId")?.value.trim();
@@ -46,18 +46,19 @@ socket.on("roomJoined", data => {
   myId = socket.id;
   players = data.players;
 
-  $("lobby").style.display = "none";
-  $("game").style.display = "block";
+  $("lobby")?.style && ($("lobby").style.display = "none");
+  $("game")?.style && ($("game").style.display = "block");
 
-  updateScoreboard();
+  updateScore();
 });
 
 socket.on("gameStarted", ({ deck, currentPlayer }) => {
   currentPlayerId = currentPlayer;
   isMyTurn = myId === currentPlayer;
   turnCount = 1;
+
   renderBoard(deck);
-  updateTurnUI();
+  updateTurnText();
 });
 
 /* =====================
@@ -72,7 +73,7 @@ function onCardClick(card, el) {
 }
 
 /* =====================
-   카드 뒤집힘 (모두에게)
+   카드 공개
 ===================== */
 socket.on("cardFlipped", card => {
   const el = document.querySelector(`[data-id="${card.id}"]`);
@@ -84,9 +85,9 @@ socket.on("cardFlipped", card => {
 });
 
 /* =====================
-   카드 매칭 성공
+   성공
 ===================== */
-socket.on("pairMatched", ({ cards, playerId }) => {
+socket.on("pairMatched", ({ cards }) => {
   setTimeout(() => {
     cards.forEach(id => {
       const el = document.querySelector(`[data-id="${id}"]`);
@@ -97,7 +98,7 @@ socket.on("pairMatched", ({ cards, playerId }) => {
 });
 
 /* =====================
-   카드 매칭 실패
+   실패
 ===================== */
 socket.on("pairFailed", cards => {
   setTimeout(() => {
@@ -112,34 +113,33 @@ socket.on("pairFailed", cards => {
 });
 
 /* =====================
-   턴 업데이트 (🔥 핵심)
+   턴 업데이트
 ===================== */
-socket.on("turnUpdate", data => {
-  currentPlayerId = data.currentPlayer;
-  players = data.players;
-  turnCount = data.turnCount;
+socket.on("turnUpdate", ({ currentPlayer, turnCount: tc, players: p }) => {
+  currentPlayerId = currentPlayer;
+  players = p;
+  turnCount = tc;
 
   isMyTurn = myId === currentPlayerId;
-  updateTurnUI();
-  updateScoreboard();
 
-  // 🔒 내 차례 아닐 때 클릭 차단
+  updateTurnText();
+  updateScore();
+
   document.querySelectorAll(".card").forEach(card => {
     card.style.pointerEvents = isMyTurn ? "auto" : "none";
   });
 });
 
 /* =====================
-   게임 종료
+   종료
 ===================== */
 socket.on("gameEnded", playersData => {
   players = playersData;
-  updateScoreboard(true);
-  showFireworks();
+  updateScore(true);
 });
 
 /* =====================
-   UI 렌더링
+   UI
 ===================== */
 function renderBoard(deck) {
   const board = $("board");
@@ -155,16 +155,14 @@ function renderBoard(deck) {
   });
 }
 
-function updateTurnUI() {
-  const el = $("turnInfo");
-  if (!el) return;
-
+function updateTurnText() {
+  // turnInfo가 없으므로 console/log 또는 score에 같이 표시
   const name = players[currentPlayerId]?.nickname || "";
-  el.textContent = `턴 ${turnCount} · ${name} 차례`;
+  document.title = `턴 ${turnCount} · ${name}`;
 }
 
-function updateScoreboard(final = false) {
-  const el = $("scoreboard");
+function updateScore(final = false) {
+  const el = $("score");
   if (!el) return;
 
   const sorted = Object.values(players)
@@ -172,19 +170,8 @@ function updateScoreboard(final = false) {
 
   el.innerHTML = sorted
     .map((p, i) => {
-      const medal = final && i === 0 ? " 🏆" : "";
-      return `${i + 1}. ${p.nickname} : ${p.score}${medal}`;
+      const crown = final && i === 0 ? " 👑" : "";
+      return `${i + 1}. ${p.nickname}: ${p.score}${crown}`;
     })
     .join("<br>");
-}
-
-/* =====================
-   폭죽 🎆
-===================== */
-function showFireworks() {
-  const fw = $("fireworks");
-  if (!fw) return;
-
-  fw.classList.add("active");
-  setTimeout(() => fw.classList.remove("active"), 4000);
 }
