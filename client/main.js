@@ -1,4 +1,4 @@
-const socket = io();
+const socket = io("https://memorygame-hg6s.onrender.com");
 
 /* =====================
    상태
@@ -26,6 +26,7 @@ const roomIdInput = () => $("roomId")?.value.trim();
    방 생성 / 참가
 ===================== */
 window.createRoom = () => {
+   console.log("createRoom clicked");
   if (!nicknameInput()) return alert("닉네임 입력");
   socket.emit("createRoom", { nickname: nicknameInput() });
 };
