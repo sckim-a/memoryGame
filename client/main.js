@@ -7,12 +7,51 @@ let hostId = "";
 let currentPlayerId = "";
 let isMyTurn = false;
 let flippedLocal = [];
+let currentCardStyle = { type: "emoji" };
 
 const $ = id => document.getElementById(id);
 
 /* ===== 로비 ===== */
+// 닉네임 자동 복원
+window.onload = () => {
+  const saved = localStorage.getItem("nickname");
+  if (saved) $("nickname").value = saved;
+};
+
+// 카드 스타일 UI
+document.querySelectorAll('input[name="cardStyle"]').forEach(radio => {
+  radio.onchange = e => {
+    $("imageUrl").style.display =
+      e.target.value === "image" ? "block" : "none";
+  };
+});
+
 window.createRoom = () => {
-  socket.emit("createRoom", { nickname: $("nickname").value });
+  const nickname = $("nickname").value.trim();
+  if (!nickname) {
+    alert("닉네임을 입력해주세요");
+    return;
+  }
+
+  localStorage.setItem("nickname", nickname);
+
+  const styleType =
+    document.querySelector('input[name="cardStyle"]:checked').value;
+
+  const imageUrl = $("imageUrl").value.trim();
+
+  if (styleType === "image" && !imageUrl) {
+    alert("이미지 URL을 입력해주세요");
+    return;
+  }
+
+  socket.emit("createRoom", {
+    nickname,
+    cardStyle: {
+      type: styleType,
+      imageUrl
+    }
+  });
 };
 
 window.joinRoom = roomId => {
@@ -115,11 +154,19 @@ socket.on("gameEnded", playersData => {
 function renderBoard(deck) {
   const board = $("board");
   board.innerHTML = "";
-  deck.forEach(card => {
+
+  deck.forEach((card, idx) => {
     const div = document.createElement("div");
     div.className = "card";
     div.dataset.id = card.id;
+
     div.onclick = () => onCardClick(card);
+
+    // 숫자 스타일은 인덱스 사용
+    if (currentCardStyle.type === "number") {
+      div.dataset.hidden = idx % 24 + 1;
+    }
+
     board.appendChild(div);
   });
 }
