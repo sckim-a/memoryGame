@@ -9,8 +9,25 @@
 <body>
 
 <div id="lobby">
-  <input id="nickname" placeholder="닉네임">
+  <input id="nickname" placeholder="닉네임 (필수)">
 
+  <h4>카드 스타일</h4>
+  <label>
+    <input type="radio" name="cardStyle" value="emoji" checked>
+    이모지
+  </label>
+  <label>
+    <input type="radio" name="cardStyle" value="number">
+    숫자
+  </label>
+  <label>
+    <input type="radio" name="cardStyle" value="image">
+    이미지(URL)
+  </label>
+
+  <input id="imageUrl" placeholder="이미지 URL (선택)" style="display:none">
+
+  <br><br>
   <button onclick="createRoom()">방 만들기</button>
 
   <h3>방 목록</h3>
@@ -31,3 +48,4 @@
 <script src="main.js"></script>
 </body>
 </html>
+
