@@ -1,22 +1,29 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Memory Game</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Memory Game</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div id="lobby">
   <input id="nickname" placeholder="닉네임">
-  <input id="roomId" placeholder="방 ID">
+
   <button onclick="createRoom()">방 만들기</button>
-  <button onclick="joinRoom()">참가</button>
+
+  <h3>방 목록</h3>
+  <div id="roomList"></div>
 </div>
 
 <div id="game" style="display:none">
-  <div id="score"></div>
+  <div id="top">
+    <button id="startBtn" onclick="startGame()" style="display:none">
+      게임 시작
+    </button>
+    <div id="score"></div>
+  </div>
   <div id="board"></div>
 </div>
 
