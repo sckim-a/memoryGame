@@ -9,7 +9,6 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
-/* 정적 파일 */
 app.use(express.static(path.join(__dirname, "../client")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../client/index.html"));
@@ -20,16 +19,26 @@ const rooms = {};
 
 function createDeck() {
   const emojis = ["🐶","🐱","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵",
-                  "🐔","🐧","🐦","🐤","🦄","🐝","🦋","🐞","🐢","🐙","🦀","🐬"];
-  const deck = emojis.flatMap((e, i) => [
-    { id: `${i}-a`, value: e },
-    { id: `${i}-b`, value: e }
-  ]);
-  return deck.sort(() => Math.random() - 0.5);
+    "🐔","🐧","🐦","🐤","🦄","🐝","🦋","🐞","🐢","🐙","🦀","🐬"];
+  return emojis.flatMap((e,i)=>[
+    { id:`${i}-a`, value:e },
+    { id:`${i}-b`, value:e }
+  ]).sort(()=>Math.random()-0.5);
+}
+
+function broadcastRoomList() {
+  const list = Object.entries(rooms).map(([id, r]) => ({
+    roomId: id,
+    players: Object.keys(r.players).length,
+    started: r.started
+  }));
+  io.emit("roomListUpdate", list);
 }
 
 io.on("connection", socket => {
   console.log("connected:", socket.id);
+
+  socket.emit("roomListUpdate", []);
 
   /* 방 생성 */
   socket.on("createRoom", ({ nickname }) => {
@@ -52,10 +61,11 @@ io.on("connection", socket => {
     socket.join(roomId);
     socket.emit("roomJoined", {
       roomId,
-      players: rooms[roomId].players
+      players: rooms[roomId].players,
+      host: rooms[roomId].host
     });
 
-    console.log("room created:", roomId);
+    broadcastRoomList();
   });
 
   /* 방 참가 */
@@ -65,24 +75,31 @@ io.on("connection", socket => {
 
     room.players[socket.id] = { nickname, score: 0, streak: 0 };
     room.playerOrder.push(socket.id);
-
     socket.join(roomId);
+
     io.to(roomId).emit("roomJoined", {
       roomId,
-      players: room.players
+      players: room.players,
+      host: room.host
     });
+
+    broadcastRoomList();
   });
 
-  /* 게임 시작 */
+  /* 게임 시작 (방장만 가능) */
   socket.on("startGame", roomId => {
     const room = rooms[roomId];
     if (!room) return;
+    if (room.host !== socket.id) return;
 
     room.started = true;
+
     io.to(roomId).emit("gameStarted", {
       deck: room.deck,
       currentPlayer: room.playerOrder[room.turnIndex]
     });
+
+    broadcastRoomList();
   });
 
   /* 카드 뒤집기 */
@@ -90,8 +107,8 @@ io.on("connection", socket => {
     const room = rooms[roomId];
     if (!room) return;
 
-    const currentPlayer = room.playerOrder[room.turnIndex];
-    if (socket.id !== currentPlayer) return;
+    const current = room.playerOrder[room.turnIndex];
+    if (socket.id !== current) return;
     if (room.flipped.length >= 2) return;
 
     room.flipped.push(card);
@@ -99,19 +116,19 @@ io.on("connection", socket => {
 
     if (room.flipped.length < 2) return;
 
-    const [a, b] = room.flipped;
-    const player = room.players[currentPlayer];
-    const isMatch = a.value === b.value;
+    const [a,b] = room.flipped;
+    const player = room.players[current];
+    const match = a.value === b.value;
 
-    if (isMatch) {
-      player.streak += 1;
+    if (match) {
+      player.streak++;
       player.score += player.streak;
-      io.to(roomId).emit("pairMatched", { cards: [a.id, b.id] });
-      room.deck = room.deck.filter(c => c.id !== a.id && c.id !== b.id);
+      io.to(roomId).emit("pairMatched", { cards:[a.id,b.id] });
+      room.deck = room.deck.filter(c=>c.id!==a.id&&c.id!==b.id);
     } else {
       player.streak = 0;
-      io.to(roomId).emit("pairFailed", [a.id, b.id]);
-      room.turnIndex = (room.turnIndex + 1) % room.playerOrder.length;
+      io.to(roomId).emit("pairFailed",[a.id,b.id]);
+      room.turnIndex = (room.turnIndex+1)%room.playerOrder.length;
       room.failedCountInRound++;
     }
 
@@ -134,20 +151,17 @@ io.on("connection", socket => {
   });
 
   socket.on("disconnect", () => {
-    for (const roomId in rooms) {
-      const room = rooms[roomId];
-      if (!room.players[socket.id]) continue;
+    for (const id in rooms) {
+      const r = rooms[id];
+      if (!r.players[socket.id]) continue;
 
-      delete room.players[socket.id];
-      room.playerOrder = room.playerOrder.filter(id => id !== socket.id);
+      delete r.players[socket.id];
+      r.playerOrder = r.playerOrder.filter(p=>p!==socket.id);
 
-      if (room.playerOrder.length === 0) {
-        delete rooms[roomId];
-      }
+      if (r.playerOrder.length === 0) delete rooms[id];
     }
+    broadcastRoomList();
   });
 });
 
-server.listen(PORT, () => {
-  console.log("Server running on", PORT);
-});
+server.listen(PORT, ()=>console.log("Server on",PORT));
