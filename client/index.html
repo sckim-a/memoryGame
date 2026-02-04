@@ -1,13 +1,20 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>멀티 메모리 게임</title>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <div id="lobby">
-    <input id="nickname" placeholder="닉네임 (필수)">
+    <h2>메모리 게임</h2>
+    <input id="nickname" placeholder="닉네임 (필수)" />
+
+    <select id="cardStyle">
+      <option value="emoji">동물 이모지</option>
+      <option value="number">숫자</option>
+    </select>
+
     <button onclick="createRoom()">방 만들기</button>
     <ul id="roomList"></ul>
   </div>
