@@ -10,15 +10,12 @@
 
 <div id="lobby">
   <input id="nickname" placeholder="닉네임 (필수)" />
-  
   <select id="cardStyle">
     <option value="emoji">이모지</option>
     <option value="number">숫자</option>
     <option value="image">이미지</option>
   </select>
-
   <input id="imageInput" type="file" multiple accept="image/*" style="display:none"/>
-
   <button onclick="createRoom()">방 만들기</button>
   <ul id="roomList"></ul>
 </div>
@@ -27,6 +24,13 @@
   <div id="info"></div>
   <div id="board"></div>
   <div id="score"></div>
+</div>
+
+<!-- 게임 종료 화면 -->
+<div id="result" class="hidden">
+  <h2>🏆 게임 결과</h2>
+  <ul id="ranking"></ul>
+  <canvas id="fireworks"></canvas>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
