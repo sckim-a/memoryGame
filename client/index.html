@@ -1,32 +1,35 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>멀티 메모리 게임</title>
-  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <div id="lobby">
-    <h2>메모리 게임</h2>
-    <input id="nickname" placeholder="닉네임 (필수)" />
 
-    <select id="cardStyle">
-      <option value="emoji">동물 이모지</option>
-      <option value="number">숫자</option>
-    </select>
+<div id="lobby">
+  <input id="nickname" placeholder="닉네임 (필수)" />
+  
+  <select id="cardStyle">
+    <option value="emoji">이모지</option>
+    <option value="number">숫자</option>
+    <option value="image">이미지</option>
+  </select>
 
-    <button onclick="createRoom()">방 만들기</button>
-    <ul id="roomList"></ul>
-  </div>
+  <input id="imageInput" type="file" multiple accept="image/*" style="display:none"/>
 
-  <div id="game" class="hidden">
-    <div id="info"></div>
-    <button id="startBtn" onclick="startGame()">게임 시작</button>
-    <div id="board"></div>
-    <div id="score"></div>
-  </div>
+  <button onclick="createRoom()">방 만들기</button>
+  <ul id="roomList"></ul>
+</div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/main.js"></script>
+<div id="game" class="hidden">
+  <div id="info"></div>
+  <div id="board"></div>
+  <div id="score"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="main.js"></script>
 </body>
 </html>
