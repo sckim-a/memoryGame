@@ -1,112 +1,111 @@
 const socket = io();
-let roomId = "";
-let myId = "";
-let currentPlayer = "";
-let players = {};
-let removed = [];
-let style = {};
 
-const $ = id => document.getElementById(id);
+let currentRoomId = null;
+let myId = null;
+let deck = [];
 
-window.onload = () => {
-  $("nickname").value = localStorage.getItem("nickname") || "";
-};
-
-window.createRoom = async () => {
-  const nick = $("nickname").value.trim();
-  if (!nick) return alert("닉네임 필수");
-
-  localStorage.setItem("nickname", nick);
-
-  const type = document.querySelector('input[name="cardStyle"]:checked').value;
-  const fd = new FormData();
-  fd.append("nickname", nick);
-  fd.append("cardStyleType", type);
-
-  if (type === "image") {
-    const f = $("imageFile").files[0];
-    if (!f) return alert("이미지 선택");
-    fd.append("image", f);
-  }
-
-  const res = await fetch("/create-room", { method: "POST", body: fd });
-  const { roomId: rid } = await res.json();
-
-  socket.emit("registerHost", { roomId: rid, nickname: nick });
-};
-
-window.joinRoom = roomId =>
-  socket.emit("joinRoom", { roomId, nickname: $("nickname").value });
-
-socket.on("roomJoined", r => {
-  roomId = r.roomId;
-  players = r.players;
+socket.on("connect", () => {
   myId = socket.id;
-  $("lobby").style.display = "none";
-  $("game").style.display = "block";
-  $("startBtn").style.display = myId === r.host ? "block" : "none";
 });
 
-window.startGame = () => socket.emit("startGame", roomId);
+function createRoom() {
+  const nickname = document.getElementById("nickname").value.trim();
+  if (!nickname) return alert("닉네임 필수");
 
-socket.on("gameStarted", data => {
-  style = data.cardStyle;
-  currentPlayer = data.currentPlayer;
-  removed = [];
-  renderBoard(data.deck);
-});
-
-function renderBoard(deck) {
-  $("board").innerHTML = "";
-  deck.forEach(card => {
-    const d = document.createElement("div");
-    d.className = "card";
-    d.dataset.id = card.id;
-    d.onclick = () => socket.emit("flipCard", { roomId, card });
-    $("board").appendChild(d);
-  });
+  socket.emit("createRoom", { nickname });
 }
 
-socket.on("cardFlipped", card => {
-  const el = document.querySelector(`[data-id="${card.id}"]`);
-  if (!el) return;
-  el.classList.add("flipped");
+function joinRoom(roomId) {
+  const nickname = document.getElementById("nickname").value.trim();
+  if (!nickname) return alert("닉네임 필수");
 
-  if (style.type === "image")
-    el.innerHTML = `<img src="${card.value}">`;
-  else
-    el.textContent = card.value;
+  socket.emit("joinRoom", { roomId, nickname });
+}
+
+function startGame() {
+  socket.emit("startGame", currentRoomId);
+}
+
+socket.on("roomJoined", roomId => {
+  currentRoomId = roomId;
+  document.getElementById("lobby").classList.add("hidden");
+  document.getElementById("game").classList.remove("hidden");
 });
 
-socket.on("pairMatched", data => {
-  data.cards.forEach(id => {
-    const el = document.querySelector(`[data-id="${id}"]`);
-    if (el) el.style.visibility = "hidden";
+socket.on("roomList", rooms => {
+  const ul = document.getElementById("roomList");
+  ul.innerHTML = "";
+
+  rooms.forEach(r => {
+    const li = document.createElement("li");
+    li.textContent = `${r.name} (${r.players}명)`;
+    if (!r.started) {
+      const btn = document.createElement("button");
+      btn.textContent = "입장";
+      btn.onclick = () => joinRoom(r.roomId);
+      li.appendChild(btn);
+    }
+    ul.appendChild(li);
   });
-  players = data.players;
-  updateScore();
+});
+
+socket.on("gameStarted", data => {
+  deck = data.deck;
+  renderBoard();
+  updateInfo(data);
+});
+
+socket.on("cardFlipped", card => {
+  const el = document.getElementById(card.id);
+  if (el) el.textContent = card.value;
+});
+
+socket.on("pairMatched", ({ ids, players }) => {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add("hidden");
+  });
+  updateScore(players);
 });
 
 socket.on("pairFailed", ids => {
   setTimeout(() => {
     ids.forEach(id => {
-      const el = document.querySelector(`[data-id="${id}"]`);
-      if (el) {
-        el.textContent = "";
-        el.classList.remove("flipped");
-      }
+      const el = document.getElementById(id);
+      if (el) el.textContent = "";
     });
-  }, 700);
+  }, 800);
 });
 
 socket.on("turnUpdate", data => {
-  currentPlayer = data.currentPlayer;
-  players = data.players;
-  updateScore();
+  updateInfo(data);
+  updateScore(data.players);
 });
 
-function updateScore() {
-  $("score").innerHTML = Object.values(players)
-    .map(p => `${p.nickname}: ${p.score}`)
-    .join("<br>");
+function renderBoard() {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+
+  deck.forEach(card => {
+    const div = document.createElement("div");
+    div.id = card.id;
+    div.className = "card";
+    div.onclick = () => {
+      socket.emit("flipCard", { roomId: currentRoomId, card });
+    };
+    board.appendChild(div);
+  });
+}
+
+function updateInfo(data) {
+  document.getElementById("info").textContent =
+    `턴 ${data.turnCount} / 현재 차례: ${data.currentPlayer}`;
+}
+
+function updateScore(players) {
+  const s = document.getElementById("score");
+  s.innerHTML = "";
+  Object.values(players).forEach(p => {
+    s.innerHTML += `${p.nickname}: ${p.score}점<br>`;
+  });
 }
