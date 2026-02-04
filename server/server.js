@@ -17,9 +17,25 @@ app.get("*", (req, res) => {
 /* ===== 게임 상태 ===== */
 const rooms = {};
 
-function createDeck() {
+function createDeck(cardStyle) {
+  if (cardStyle.type === "number") {
+    return Array.from({ length: 24 }).flatMap((_, i) => ([
+      { id: `${i}-a`, value: i + 1, number: i + 1 },
+      { id: `${i}-b`, value: i + 1, number: i + 1 }
+    ])).sort(()=>Math.random()-0.5);
+  }
+
+  if (cardStyle.type === "image") {
+    return Array.from({ length: 24 }).flatMap((_, i) => ([
+      { id: `${i}-a`, value: cardStyle.imageUrl },
+      { id: `${i}-b`, value: cardStyle.imageUrl }
+    ])).sort(()=>Math.random()-0.5);
+  }
+
+  // 기본 이모지
   const emojis = ["🐶","🐱","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵",
     "🐔","🐧","🐦","🐤","🦄","🐝","🦋","🐞","🐢","🐙","🦀","🐬"];
+
   return emojis.flatMap((e,i)=>[
     { id:`${i}-a`, value:e },
     { id:`${i}-b`, value:e }
@@ -47,13 +63,16 @@ io.on("connection", socket => {
   socket.emit("roomListUpdate", list);
 
   /* 방 생성 */
-  socket.on("createRoom", ({ nickname }) => {
-    const roomId = Math.random().toString(36).slice(2, 7);
-
+  socket.on("createRoom", ({ nickname, cardStyle }) => {
+    if (!nickname) return;
+  
+    const roomId = Math.random().toString(36).slice(2,7);
+  
     rooms[roomId] = {
       host: socket.id,
       started: false,
-      deck: createDeck(),
+      cardStyle,
+      deck: createDeck(cardStyle),
       players: {
         [socket.id]: { nickname, score: 0, streak: 0 }
       },
@@ -63,14 +82,15 @@ io.on("connection", socket => {
       failedCountInRound: 0,
       flipped: []
     };
-
+  
     socket.join(roomId);
+  
     socket.emit("roomJoined", {
       roomId,
       players: rooms[roomId].players,
-      host: rooms[roomId].host
+      host: socket.id
     });
-
+  
     broadcastRoomList();
   });
 
@@ -102,7 +122,8 @@ io.on("connection", socket => {
 
     io.to(roomId).emit("gameStarted", {
       deck: room.deck,
-      currentPlayer: room.playerOrder[room.turnIndex]
+      currentPlayer: room.playerOrder[room.turnIndex],
+      cardStyle: room.cardStyle
     });
 
     broadcastRoomList();
@@ -171,4 +192,5 @@ io.on("connection", socket => {
 });
 
 server.listen(PORT, ()=>console.log("Server on",PORT));
+
 
