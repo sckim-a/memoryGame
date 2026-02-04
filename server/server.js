@@ -9,184 +9,175 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
-let roomCounter = 1;
-const rooms = {};
 
-/* 업로드 */
-const upload = multer({
-  dest: path.join(__dirname, "uploads")
-});
+/* ===== 정적 파일 ===== */
+app.use(express.static(path.join(__dirname, "../client")));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-/* 정적 */
-app.use(express.static(path.join(__dirname, "../client")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../client/index.html"));
 });
 
-/* 카드 생성 */
-function createDeck(style) {
-  if (style.type === "number") {
-    return Array.from({ length: 24 }).flatMap((_, i) => ([
-      { id: `${i}-a`, value: i + 1 },
-      { id: `${i}-b`, value: i + 1 }
-    ])).sort(() => Math.random() - 0.5);
-  }
-
-  if (style.type === "image") {
-    return Array.from({ length: 24 }).flatMap((_, i) => ([
-      { id: `${i}-a`, value: style.imageUrl },
-      { id: `${i}-b`, value: style.imageUrl }
-    ])).sort(() => Math.random() - 0.5);
-  }
-
-  const emojis = ["🐶","🐱","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵",
-    "🐔","🐧","🐦","🐤","🦄","🐝","🦋","🐞","🐢","🐙","🦀","🐬"];
-
-  return emojis.flatMap((e, i) => [
-    { id: `${i}-a`, value: e },
-    { id: `${i}-b`, value: e }
-  ]).sort(() => Math.random() - 0.5);
-}
-
-/* 방 목록 */
-function broadcastRoomList() {
-  io.emit("roomListUpdate",
-    Object.entries(rooms).map(([id, r]) => ({
-      roomId: id,
-      name: r.name,
-      players: Object.keys(r.players).length,
-      started: r.started
-    }))
-  );
-}
-
-/* 방 생성 (HTTP) */
-app.post("/create-room", upload.single("image"), (req, res) => {
-  const { nickname, cardStyleType } = req.body;
-  if (!nickname) return res.status(400).end();
-
-  const roomId = Math.random().toString(36).slice(2, 7);
-  const name = `메모리게임${roomCounter++}`;
-
-  const cardStyle = { type: cardStyleType };
-  if (cardStyleType === "image") {
-    cardStyle.imageUrl = `/uploads/${req.file.filename}`;
-  }
-
-  rooms[roomId] = {
-    name,
-    host: null,
-    started: false,
-    cardStyle,
-    deck: createDeck(cardStyle),
-    removedCards: [],
-    players: {},
-    order: [],
-    turnIndex: 0,
-    turnCount: 1,
-    flipped: []
-  };
-
-  res.json({ roomId });
+/* ===== 업로드 설정 ===== */
+const upload = multer({
+  dest: path.join(__dirname, "uploads")
 });
 
-/* 소켓 */
-io.on("connection", socket => {
+/* ===== 게임 상태 ===== */
+let rooms = {};
+let roomSeq = 1;
 
-  socket.emit("roomListUpdate", Object.entries(rooms).map(([id, r]) => ({
-    roomId: id,
-    name: r.name,
+function createDeck() {
+  const emojis = [
+    "🐶","🐱","🦊","🐻","🐼","🐨",
+    "🐯","🦁","🐮","🐷","🐸","🐵",
+    "🐔","🐧","🐦","🐤","🦄","🐝",
+    "🦋","🐞","🐢","🐙","🦀","🐬"
+  ];
+
+  return emojis.flatMap((e, i) => ([
+    { id: `${i}-a`, value: e },
+    { id: `${i}-b`, value: e }
+  ])).sort(() => Math.random() - 0.5);
+}
+
+/* ===== 방 목록 브로드캐스트 ===== */
+function emitRoomList() {
+  const list = Object.values(rooms).map((r, idx) => ({
+    roomId: r.roomId,
+    name: `메모리게임${idx + 1}`,
     players: Object.keys(r.players).length,
     started: r.started
-  })));
+  }));
+  io.emit("roomList", list);
+}
 
-  socket.on("registerHost", ({ roomId, nickname }) => {
-    const r = rooms[roomId];
-    if (!r) return;
+/* ===== Socket ===== */
+io.on("connection", socket => {
+  console.log("connected:", socket.id);
 
-    r.host = socket.id;
-    r.players[socket.id] = { nickname, score: 0, streak: 0 };
-    r.order.push(socket.id);
+  /* 방 생성 */
+  socket.on("createRoom", ({ nickname }) => {
+    const roomId = "room-" + roomSeq++;
+
+    rooms[roomId] = {
+      roomId,
+      host: socket.id,
+      started: false,
+      deck: createDeck(),
+      players: {
+        [socket.id]: { nickname, score: 0, streak: 0 }
+      },
+      order: [socket.id],
+      turnIndex: 0,
+      turnCount: 1,
+      flipped: []
+    };
+
     socket.join(roomId);
-
-    socket.emit("roomJoined", r);
-    broadcastRoomList();
+    socket.emit("roomJoined", roomId);
+    emitRoomList();
   });
 
+  /* 방 참가 */
   socket.on("joinRoom", ({ roomId, nickname }) => {
-    const r = rooms[roomId];
-    if (!r || r.started) return;
+    const room = rooms[roomId];
+    if (!room || room.started) return;
 
-    r.players[socket.id] = { nickname, score: 0, streak: 0 };
-    r.order.push(socket.id);
+    room.players[socket.id] = { nickname, score: 0, streak: 0 };
+    room.order.push(socket.id);
+
     socket.join(roomId);
-
-    io.to(roomId).emit("roomJoined", r);
-    broadcastRoomList();
+    socket.emit("roomJoined", roomId);
+    emitRoomList();
   });
 
+  /* 게임 시작 (방장만) */
   socket.on("startGame", roomId => {
-    const r = rooms[roomId];
-    if (!r || socket.id !== r.host) return;
+    const room = rooms[roomId];
+    if (!room || socket.id !== room.host) return;
 
-    r.started = true;
+    room.started = true;
+
     io.to(roomId).emit("gameStarted", {
-      deck: r.deck,
-      removedCards: [],
-      cardStyle: r.cardStyle,
-      currentPlayer: r.order[r.turnIndex]
+      deck: room.deck,
+      players: room.players,
+      currentPlayer: room.order[room.turnIndex],
+      turnCount: room.turnCount
     });
-    broadcastRoomList();
+
+    emitRoomList();
   });
 
+  /* 카드 뒤집기 */
   socket.on("flipCard", ({ roomId, card }) => {
-    const r = rooms[roomId];
-    if (!r) return;
+    const room = rooms[roomId];
+    if (!room) return;
 
-    const current = r.order[r.turnIndex];
-    if (socket.id !== current) return;
-    if (r.flipped.length >= 2) return;
-    if (r.removedCards.includes(card.id)) return;
+    const currentPlayer = room.order[room.turnIndex];
+    if (socket.id !== currentPlayer) return;
+    if (room.flipped.length >= 2) return;
 
-    r.flipped.push(card);
+    room.flipped.push(card);
     io.to(roomId).emit("cardFlipped", card);
 
-    if (r.flipped.length < 2) return;
+    if (room.flipped.length < 2) return;
 
-    const [a, b] = r.flipped;
-    const player = r.players[current];
+    const [a, b] = room.flipped;
+    const player = room.players[currentPlayer];
 
     if (a.value === b.value) {
-      player.streak++;
+      player.streak += 1;
       player.score += player.streak;
 
-      r.removedCards.push(a.id, b.id);
+      room.deck = room.deck.filter(
+        c => c.id !== a.id && c.id !== b.id
+      );
 
       io.to(roomId).emit("pairMatched", {
-        cards: [a.id, b.id],
-        players: r.players
+        ids: [a.id, b.id],
+        players: room.players
       });
     } else {
       player.streak = 0;
       io.to(roomId).emit("pairFailed", [a.id, b.id]);
-      r.turnIndex = (r.turnIndex + 1) % r.order.length;
+
+      room.turnIndex = (room.turnIndex + 1) % room.order.length;
+      if (room.turnIndex === 0) room.turnCount++;
     }
 
-    r.flipped = [];
+    room.flipped = [];
 
     io.to(roomId).emit("turnUpdate", {
-      currentPlayer: r.order[r.turnIndex],
-      turnCount: r.turnCount,
-      players: r.players
+      currentPlayer: room.order[room.turnIndex],
+      turnCount: room.turnCount,
+      players: room.players
     });
 
-    if (r.removedCards.length === r.deck.length) {
-      io.to(roomId).emit("gameEnded", r.players);
+    if (room.deck.length === 0) {
+      io.to(roomId).emit("gameEnded", room.players);
     }
+  });
+
+  /* 연결 해제 */
+  socket.on("disconnect", () => {
+    for (const id in rooms) {
+      const room = rooms[id];
+      if (!room.players[socket.id]) continue;
+
+      delete room.players[socket.id];
+      room.order = room.order.filter(p => p !== socket.id);
+
+      if (room.order.length === 0) {
+        delete rooms[id];
+      } else if (room.host === socket.id) {
+        room.host = room.order[0];
+      }
+    }
+    emitRoomList();
   });
 });
 
 server.listen(PORT, () => {
-  console.log("Server running:", PORT);
+  console.log("Server running on", PORT);
 });
