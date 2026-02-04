@@ -1,167 +1,266 @@
 const socket = io();
 
+/* ---------- DOM ---------- */
 const lobby = document.getElementById("lobby");
-const game = document.getElementById("game");
-const result = document.getElementById("result");
+const roomDiv = document.getElementById("room");
+const resultDiv = document.getElementById("result");
 
-const roomListEl = document.getElementById("roomList");
+const roomList = document.getElementById("roomList");
+const nicknameInput = document.getElementById("nickname");
+const cardStyleSelect = document.getElementById("cardStyle");
+const imageUpload = document.getElementById("imageUpload");
+
+const createBtn = document.getElementById("createBtn");
+const startBtn = document.getElementById("startBtn");
+
 const board = document.getElementById("board");
-const info = document.getElementById("info");
-const score = document.getElementById("score");
-const ranking = document.getElementById("ranking");
-const imageInput = document.getElementById("imageInput");
+const playersDiv = document.getElementById("players");
+const scoreDiv = document.getElementById("score");
+const turnInfo = document.getElementById("turnInfo");
+const roomTitle = document.getElementById("roomTitle");
 
-let currentRoom = null;
+const rankingList = document.getElementById("ranking");
+const fireworksCanvas = document.getElementById("fireworks");
 
-/* ===== 카드 스타일 선택 ===== */
-document.getElementById("cardStyle").onchange = e => {
-  imageInput.style.display = e.target.value === "image" ? "block" : "none";
+/* ---------- 상태 ---------- */
+let myId;
+let currentRoom;
+let currentCardStyle = "emoji";
+let cards = {};
+let canFlip = false;
+
+/* ---------- 소켓 연결 ---------- */
+socket.on("connect", () => {
+  myId = socket.id;
+});
+
+/* ---------- 카드 스타일 UI ---------- */
+cardStyleSelect.onchange = () => {
+  imageUpload.classList.toggle(
+    "hidden",
+    cardStyleSelect.value !== "image"
+  );
 };
 
-/* ===== 방 생성 ===== */
-async function createRoom() {
-  const nickname = document.getElementById("nickname").value.trim();
-  const style = document.getElementById("cardStyle").value;
-  if (!nickname) return alert("닉네임 필수");
+/* ---------- 방 만들기 ---------- */
+createBtn.onclick = async () => {
+  const nickname = nicknameInput.value.trim();
+  if (!nickname) return alert("닉네임은 필수입니다");
 
-  let images = [];
-  if (style === "image") {
-    const form = new FormData();
-    [...imageInput.files].forEach(f => form.append("images", f));
-    const res = await fetch("/upload", { method: "POST", body: form });
-    images = await res.json();
+  currentCardStyle = cardStyleSelect.value;
+  let imagePaths = [];
+
+  if (currentCardStyle === "image") {
+    if (imageUpload.files.length < 24) {
+      return alert("이미지는 최소 24장 필요합니다");
+    }
+
+    const formData = new FormData();
+    for (let i = 0; i < 24; i++) {
+      formData.append("images", imageUpload.files[i]);
+    }
+
+    const res = await fetch("/upload", {
+      method: "POST",
+      body: formData
+    });
+
+    imagePaths = await res.json();
   }
 
-  localStorage.setItem("nickname", nickname);
-  socket.emit("createRoom", { nickname, cardStyle: style, images });
-}
+  socket.emit("createRoom", {
+    nickname,
+    cardStyle: currentCardStyle,
+    images: imagePaths
+  });
+};
 
-/* ===== 방 목록 ===== */
+/* ---------- 방 목록 ---------- */
 socket.on("roomList", rooms => {
-  roomListEl.innerHTML = "";
-  Object.values(rooms).forEach(r => {
+  roomList.innerHTML = "";
+
+  Object.values(rooms).forEach(room => {
+    if (room.started) return;
+
     const li = document.createElement("li");
-    li.textContent = `${r.name} (${Object.keys(r.players).length})`;
-    li.onclick = () => socket.emit("joinRoom", {
-      roomId: r.id,
-      nickname: localStorage.getItem("nickname")
-    });
-    roomListEl.appendChild(li);
+    li.textContent = `${room.name} (${Object.keys(room.players).length}명)`;
+
+    li.onclick = () => {
+      const nickname = nicknameInput.value.trim();
+      if (!nickname) return alert("닉네임 필수");
+
+      currentRoom = room.id;
+      currentCardStyle = room.cardStyle;
+
+      socket.emit("joinRoom", {
+        roomId: room.id,
+        nickname
+      });
+
+      lobby.classList.add("hidden");
+      roomDiv.classList.remove("hidden");
+      roomTitle.textContent = room.name;
+    };
+
+    roomList.appendChild(li);
   });
 });
 
-/* ===== 방 입장 ===== */
+/* ---------- 방 업데이트 ---------- */
 socket.on("roomUpdate", room => {
-  currentRoom = room;
-  lobby.classList.add("hidden");
-  game.classList.remove("hidden");
+  if (room.id !== currentRoom) return;
+
+  playersDiv.innerHTML = "";
+  Object.values(room.players).forEach(p => {
+    const d = document.createElement("div");
+    d.textContent = p.nickname;
+    playersDiv.appendChild(d);
+  });
+
+  if (room.host === myId && !room.started) {
+    startBtn.classList.remove("hidden");
+    startBtn.onclick = () => socket.emit("startGame", room.id);
+  }
 });
 
-/* ===== 게임 시작 ===== */
-socket.on("gameStarted", deck => {
+/* ---------- 게임 시작 ---------- */
+socket.on("gameStarted", data => {
   board.innerHTML = "";
-  deck.forEach(card => {
+  cards = {};
+  canFlip = true;
+
+  data.deck.forEach(card => {
     const div = document.createElement("div");
     div.className = "card";
-    div.dataset.id = card.id;
-    div.dataset.type = card.type;
-    div.onclick = () => socket.emit("flipCard", { roomId: currentRoom.id, card });
+
+    if (currentCardStyle === "image") {
+      const img = document.createElement("img");
+      img.src = card.value;
+      div.appendChild(img);
+    } else {
+      div.textContent = "?";
+    }
+
+    div.onclick = () => {
+      if (!canFlip || div.classList.contains("open")) return;
+      socket.emit("flipCard", { roomId: currentRoom, card });
+    };
+
     board.appendChild(div);
+    cards[card.id] = div;
   });
+
+  updateTurn(data.currentPlayer, data.turnCount, data.players);
 });
 
-/* ===== 카드 뒤집기 ===== */
+/* ---------- 카드 뒤집기 ---------- */
 socket.on("cardFlipped", card => {
-  const el = document.querySelector(`[data-id="${card.id}"]`);
+  const el = cards[card.id];
   if (!el) return;
 
-  if (card.type === "image") {
-    el.innerHTML = `<img src="${card.value}">`;
+  el.classList.add("open");
+  if (currentCardStyle === "image") {
+    el.querySelector("img").style.display = "block";
   } else {
     el.textContent = card.value;
   }
 });
 
-/* ===== 성공 ===== */
-socket.on("pairMatched", ({ ids, players }) => {
-  ids.forEach(id => document.querySelector(`[data-id="${id}"]`)?.remove());
-  updateScore(players);
-});
-
-/* ===== 실패 ===== */
+/* ---------- 실패 ---------- */
 socket.on("pairFailed", ids => {
+  canFlip = false;
   setTimeout(() => {
     ids.forEach(id => {
-      const el = document.querySelector(`[data-id="${id}"]`);
-      if (el) el.innerHTML = "";
+      const el = cards[id];
+      if (!el) return;
+      el.classList.remove("open");
+      if (currentCardStyle === "image") {
+        el.querySelector("img").style.display = "none";
+      } else {
+        el.textContent = "?";
+      }
     });
+    canFlip = true;
   }, 800);
 });
 
-/* ===== 턴 업데이트 ===== */
-socket.on("turnUpdate", ({ currentPlayer, turnCount, players }) => {
-  info.textContent = `턴 ${turnCount} / ${players[currentPlayer].nickname} 차례`;
-  updateScore(players);
-});
-
-/* ===== 게임 종료 ===== */
-socket.on("gameEnded", players => {
-  game.classList.add("hidden");
-  result.classList.remove("hidden");
-
-  const sorted = Object.values(players)
-    .sort((a, b) => b.score - a.score);
-
-  ranking.innerHTML = "";
-  sorted.forEach((p, i) => {
-    const li = document.createElement("li");
-    li.textContent = `${i + 1}위 - ${p.nickname} (${p.score}점)`;
-    ranking.appendChild(li);
+/* ---------- 성공 ---------- */
+socket.on("pairMatched", data => {
+  data.cards.forEach(id => {
+    const el = cards[id];
+    if (el) el.classList.add("matched");
   });
-
-  launchFireworks();
 });
 
-/* ===== 점수판 ===== */
-function updateScore(players) {
-  score.innerHTML = "";
+/* ---------- 턴 / 점수 ---------- */
+socket.on("turnUpdate", data => {
+  updateTurn(data.currentPlayer, data.turnCount, data.players);
+});
+
+function updateTurn(currentPlayer, turnCount, players) {
+  turnInfo.textContent =
+    `턴 ${turnCount} / 현재 차례: ${players[currentPlayer].nickname}`;
+
+  scoreDiv.innerHTML = "";
   Object.values(players).forEach(p => {
     const d = document.createElement("div");
-    d.textContent = `${p.nickname}: ${p.score}`;
-    score.appendChild(d);
+    d.textContent = `${p.nickname}: ${p.score}점`;
+    scoreDiv.appendChild(d);
   });
 }
 
-/* ===== 폭죽 ===== */
-function launchFireworks() {
-  const canvas = document.getElementById("fireworks");
-  const ctx = canvas.getContext("2d");
+/* ---------- 종료 ---------- */
+socket.on("gameEnded", players => {
+  roomDiv.classList.add("hidden");
+  resultDiv.classList.remove("hidden");
 
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  const ranked = Object.values(players)
+    .sort((a, b) => b.score - a.score);
 
-  let particles = [];
+  rankingList.innerHTML = "";
+  ranked.forEach((p, i) => {
+    const li = document.createElement("li");
+    li.textContent = `${i + 1}위 ${p.nickname} (${p.score}점)`;
+    rankingList.appendChild(li);
+  });
 
-  for (let i = 0; i < 120; i++) {
-    particles.push({
-      x: canvas.width / 2,
-      y: canvas.height / 2,
-      vx: (Math.random() - 0.5) * 8,
-      vy: (Math.random() - 0.5) * 8,
-      life: 60
+  if (ranked[0].socketId === myId) {
+    startFireworks();
+  }
+});
+
+/* ---------- 폭죽 ---------- */
+function startFireworks() {
+  const c = fireworksCanvas;
+  const ctx = c.getContext("2d");
+
+  c.width = window.innerWidth;
+  c.height = window.innerHeight;
+
+  const parts = [];
+  for (let i = 0; i < 150; i++) {
+    parts.push({
+      x: c.width / 2,
+      y: c.height / 2,
+      vx: Math.random() * 6 - 3,
+      vy: Math.random() * 6 - 3,
+      life: 100,
+      color: `hsl(${Math.random() * 360},100%,50%)`
     });
   }
 
   function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    particles.forEach(p => {
-      ctx.fillRect(p.x, p.y, 4, 4);
+    ctx.clearRect(0, 0, c.width, c.height);
+    parts.forEach(p => {
       p.x += p.vx;
       p.y += p.vy;
       p.life--;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+      ctx.fill();
     });
-    particles = particles.filter(p => p.life > 0);
-    if (particles.length) requestAnimationFrame(draw);
+    if (parts.some(p => p.life > 0)) requestAnimationFrame(draw);
   }
 
   draw();
