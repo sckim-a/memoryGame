@@ -91,11 +91,11 @@ window.startGame = () => {
   socket.emit("startGame", roomId);
 };
 
-socket.on("gameStarted", ({ deck, currentPlayer }) => {
-  currentPlayerId = currentPlayer;
-  isMyTurn = myId === currentPlayer;
-  $("startBtn").style.display = "none";
-  renderBoard(deck);
+socket.on("gameStarted", data => {
+  currentCardStyle = data.cardStyle;
+  currentPlayerId = data.currentPlayer;
+  isMyTurn = myId === currentPlayerId;
+  renderBoard(data.deck);
 });
 
 /* ===== 게임 로직 ===== */
