@@ -1,7 +1,7 @@
 const socket = io();
 
-let currentRoomId = null;
 let myId = null;
+let currentRoomId = null;
 let deck = [];
 
 socket.on("connect", () => {
@@ -10,9 +10,10 @@ socket.on("connect", () => {
 
 function createRoom() {
   const nickname = document.getElementById("nickname").value.trim();
+  const cardStyle = document.getElementById("cardStyle").value;
   if (!nickname) return alert("닉네임 필수");
 
-  socket.emit("createRoom", { nickname });
+  socket.emit("createRoom", { nickname, cardStyle });
 }
 
 function joinRoom(roomId) {
@@ -26,33 +27,33 @@ function startGame() {
   socket.emit("startGame", currentRoomId);
 }
 
+socket.on("roomList", rooms => {
+  const ul = document.getElementById("roomList");
+  ul.innerHTML = "";
+  rooms.forEach(r => {
+    const li = document.createElement("li");
+    li.textContent = `${r.name} (${r.players}명)`;
+    if (!r.started) {
+      const b = document.createElement("button");
+      b.textContent = "입장";
+      b.onclick = () => joinRoom(r.roomId);
+      li.appendChild(b);
+    }
+    ul.appendChild(li);
+  });
+});
+
 socket.on("roomJoined", roomId => {
   currentRoomId = roomId;
   document.getElementById("lobby").classList.add("hidden");
   document.getElementById("game").classList.remove("hidden");
 });
 
-socket.on("roomList", rooms => {
-  const ul = document.getElementById("roomList");
-  ul.innerHTML = "";
-
-  rooms.forEach(r => {
-    const li = document.createElement("li");
-    li.textContent = `${r.name} (${r.players}명)`;
-    if (!r.started) {
-      const btn = document.createElement("button");
-      btn.textContent = "입장";
-      btn.onclick = () => joinRoom(r.roomId);
-      li.appendChild(btn);
-    }
-    ul.appendChild(li);
-  });
-});
-
 socket.on("gameStarted", data => {
   deck = data.deck;
   renderBoard();
   updateInfo(data);
+  updateScore(data.players);
 });
 
 socket.on("cardFlipped", card => {
@@ -74,7 +75,7 @@ socket.on("pairFailed", ids => {
       const el = document.getElementById(id);
       if (el) el.textContent = "";
     });
-  }, 800);
+  }, 700);
 });
 
 socket.on("turnUpdate", data => {
@@ -85,15 +86,14 @@ socket.on("turnUpdate", data => {
 function renderBoard() {
   const board = document.getElementById("board");
   board.innerHTML = "";
-
   deck.forEach(card => {
-    const div = document.createElement("div");
-    div.id = card.id;
-    div.className = "card";
-    div.onclick = () => {
+    const d = document.createElement("div");
+    d.id = card.id;
+    d.className = "card";
+    d.onclick = () => {
       socket.emit("flipCard", { roomId: currentRoomId, card });
     };
-    board.appendChild(div);
+    board.appendChild(d);
   });
 }
 
