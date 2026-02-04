@@ -38,7 +38,13 @@ function broadcastRoomList() {
 io.on("connection", socket => {
   console.log("connected:", socket.id);
 
-  socket.emit("roomListUpdate", []);
+  // 연결된 클라이언트에게 현재 방 목록 전송
+  const list = Object.entries(rooms).map(([id, r]) => ({
+    roomId: id,
+    players: Object.keys(r.players).length,
+    started: r.started
+  }));
+  socket.emit("roomListUpdate", list);
 
   /* 방 생성 */
   socket.on("createRoom", ({ nickname }) => {
@@ -165,3 +171,4 @@ io.on("connection", socket => {
 });
 
 server.listen(PORT, ()=>console.log("Server on",PORT));
+
