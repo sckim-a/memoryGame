@@ -84,13 +84,18 @@ socket.on("roomUpdate", room => {
   roomTitle.textContent = room.name;
 });
 
-socket.on("gameStarted", deck => {
+socket.on("gameStarted", data => {
   gameDiv.innerHTML = "";
   cards = {};
+
+  const deck = data.deck;                 // ⭐ 핵심
+  currentTurnPlayer = data.currentPlayer; // 턴 UI용
+  turnCount = data.turnCount;
 
   deck.forEach(card => {
     const div = document.createElement("div");
     div.className = "card";
+
     div.onclick = () => socket.emit("flipCard", {
       roomId: currentRoom,
       card
@@ -107,6 +112,8 @@ socket.on("gameStarted", deck => {
     cards[card.id] = div;
     gameDiv.appendChild(div);
   });
+
+  updateTurnUI(); // 👉 이미 있다면 그대로 사용
 });
 
 socket.on("cardFlipped", card => {
