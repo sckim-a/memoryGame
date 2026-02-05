@@ -153,6 +153,7 @@ socket.on("pairFailed", ids => {
    게임 종료
 ===================== */
 socket.on("gameEnded", players => {
+   console.log("gameEnded received");
    if (!currentRoom) return; // 🔥 방 없으면 무시
    
   endModal.classList.remove("hidden");
