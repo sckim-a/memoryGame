@@ -1,64 +1,95 @@
+* {
+  box-sizing: border-box;
+}
+
 body {
+  margin: 0;
   font-family: sans-serif;
-  text-align: center;
+  background: #111;
+  color: #fff;
+}
+
+.screen {
+  min-height: 100vh;
+  padding: 16px;
 }
 
 .hidden {
   display: none;
 }
 
-#board {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 6px;
-  max-width: 360px;
-  margin: 20px auto;
+input, select, button {
+  width: 100%;
+  height: 48px;
+  margin: 6px 0;
+  font-size: 16px;
 }
 
-.card {
-  background: #444;
-  color: white;
-  font-size: 22px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+button {
+  background: #4caf50;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+}
+
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+#roomList li {
+  background: #222;
+  padding: 12px;
+  margin: 6px 0;
+  border-radius: 6px;
   cursor: pointer;
-  transition: transform 0.3s;
 }
 
-.card.open {
-  background: #fff;
-  color: #000;
-  transform: rotateY(180deg);
+/* 게임 영역 */
+.game {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(40px, 1fr));
+  gap: 6px;
+  margin-top: 12px;
+  border: 4px solid transparent;
 }
 
-.card.matched {
-  visibility: hidden;
+/* 내 차례 */
+.my-turn {
+  border-color: #4caf50;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0px #4caf50; }
+  50% { box-shadow: 0 0 12px #4caf50; }
+  100% { box-shadow: 0 0 0px #4caf50; }
+}
+
+/* 카드 */
+.card {
+  background: #333;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2.8rem;
 }
 
 .card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: none;
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
 }
 
-#ranking {
-  list-style: none;
-  padding: 0;
-  font-size: 18px;
-}
-
+/* 결과 */
 #ranking li {
+  font-size: 18px;
   margin: 6px 0;
 }
 
 #fireworks {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   pointer-events: none;
 }
