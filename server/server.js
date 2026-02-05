@@ -72,8 +72,8 @@ io.on("connection", socket => {
     };
 
     socket.join(roomId);
-    io.emit("roomList", rooms);
     io.to(roomId).emit("roomUpdate", rooms[roomId]);
+    io.emit("roomList", rooms);
   });
 
   socket.on("joinRoom", ({ roomId, nickname }) => {
@@ -196,3 +196,4 @@ io.on("connection", socket => {
 server.listen(PORT, () => {
   console.log("Server running on", PORT);
 });
+
