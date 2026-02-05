@@ -46,6 +46,11 @@ body {
   transition: transform 0.3s, border 0.3s;
 }
 
+.card.open {
+  background: white;
+  color: black;
+}
+
 .card img {
   width: 80%;
   height: 80%;
