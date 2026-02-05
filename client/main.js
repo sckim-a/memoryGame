@@ -22,6 +22,12 @@ let currentRoom = null;
 let cards = {};
 let cardStyle = "emoji";
 
+// 🔥 초기 화면 강제 세팅
+lobbyDiv.classList.remove("hidden");
+roomDiv.classList.add("hidden");
+gameDiv.classList.add("hidden");
+endModal.classList.add("hidden");
+
 /* =====================
    기본
 ===================== */
@@ -147,6 +153,8 @@ socket.on("pairFailed", ids => {
    게임 종료
 ===================== */
 socket.on("gameEnded", players => {
+   if (!currentRoom) return; // 🔥 방 없으면 무시
+   
   endModal.classList.remove("hidden");
   rankList.innerHTML = "";
 
@@ -164,9 +172,11 @@ socket.on("gameEnded", players => {
 ===================== */
 restartBtn.onclick = () => {
   endModal.classList.add("hidden");
+  gameDiv.innerHTML = "";
   socket.emit("startGame", currentRoom);
 };
 
 leaveBtn.onclick = () => {
+  socket.disconnect();
   location.reload();
 };
