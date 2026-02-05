@@ -3,50 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>메모리 게임</title>
+  <title>멀티 메모리게임</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-<div id="lobby" class="screen">
-  <h1>🧠 메모리 게임</h1>
-
-  <input id="nickname" placeholder="닉네임 (필수)" />
-
-  <div class="create">
+  <div id="lobby">
+    <input id="nickname" placeholder="닉네임" />
     <select id="cardStyle">
-      <option value="emoji">이모지</option>
       <option value="number">숫자</option>
-      <option value="image">이미지 업로드</option>
+      <option value="emoji">이모지</option>
+      <option value="image">이미지</option>
     </select>
-    <input type="file" id="cardImage" accept="image/*" />
-    <button onclick="createRoom()">방 만들기</button>
+    <input id="imageUrl" placeholder="이미지 URL" />
+    <button id="createBtn">방 만들기</button>
+    <ul id="roomList"></ul>
   </div>
 
-  <h2>방 목록</h2>
-  <ul id="roomList"></ul>
-</div>
+  <div id="room" class="hidden">
+    <button id="startBtn">게임 시작</button>
+    <div id="info"></div>
+    <div id="game"></div>
+  </div>
 
-<div id="room" class="screen hidden">
-  <h2 id="roomTitle"></h2>
-
-  <div id="turnInfo"></div>
-  <div id="score"></div>
-
-  <div id="game" class="game"></div>
-
-  <button id="startBtn" onclick="startGame()">게임 시작</button>
-</div>
-
-<div id="result" class="screen hidden">
-  <h2>🏆 결과</h2>
-  <ul id="ranking"></ul>
-  <button onclick="restartGame()">다시하기</button>
-  <button onclick="leaveRoom()">나가기</button>
-  <canvas id="fireworks"></canvas>
-</div>
-
-<script src="/socket.io/socket.io.js"></script>
-<script src="main.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>
