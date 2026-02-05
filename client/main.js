@@ -227,18 +227,23 @@ function updateTurn(currentPlayer, turnCount, players) {
   turnInfo.textContent =
     `턴 ${turnCount} / 현재 차례: ${players[currentPlayer].nickname}`;
 
-  // 🔥 내 차례 UI 강조
-  if (currentPlayer === myId) {
-    board.classList.add("my-turn");
-  } else {
-    board.classList.remove("my-turn");
-  }
-
   scoreDiv.innerHTML = "";
+  playersDiv.innerHTML = "";
+
   Object.values(players).forEach(p => {
     const d = document.createElement("div");
-    d.textContent = `${p.nickname}: ${p.score}점`;
-    scoreDiv.appendChild(d);
+    d.textContent = `${p.nickname} (${p.score}점)`;
+
+    if (p.socketId === currentPlayer) {
+      d.classList.add("active-turn");
+
+      if (p.socketId === myId) {
+        d.classList.add("me");
+      }
+    }
+
+    playersDiv.appendChild(d);
+    scoreDiv.appendChild(d.cloneNode(true));
   });
 }
 
