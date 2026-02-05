@@ -40,8 +40,21 @@ function joinRoom(roomId) {
 
 socket.on("roomUpdate", room => {
   currentRoom = room.id;
+
+  /* === 화면 전환 === */
+  lobbyDiv.style.display = "none";
+  roomDiv.style.display = "block";
+  gameDiv.style.display = "none";
+
+  /* === 방 정보 렌더링 === */
+  renderPlayers(room.players);
+  renderRoomInfo(room);
+
+  /* === 방장만 시작 버튼 === */
   if (room.host === myId) {
-    document.getElementById("startBtn").style.display = "block";
+    startBtn.style.display = "block";
+  } else {
+    startBtn.style.display = "none";
   }
 });
 
