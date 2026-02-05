@@ -1,224 +1,267 @@
 const socket = io();
 
-const lobbyDiv = document.getElementById("lobby");
+/* ---------- DOM ---------- */
+const lobby = document.getElementById("lobby");
 const roomDiv = document.getElementById("room");
-const gameDiv = document.getElementById("game");
-const roomList = document.getElementById("roomList");
+const resultDiv = document.getElementById("result");
 
-const nicknameInput = document.getElementById("nicknameInput");
+const roomList = document.getElementById("roomList");
+const nicknameInput = document.getElementById("nickname");
 const cardStyleSelect = document.getElementById("cardStyle");
 const imageUpload = document.getElementById("imageUpload");
 
-const createRoomBtn = document.getElementById("createRoomBtn");
+const createBtn = document.getElementById("createBtn");
 const startBtn = document.getElementById("startBtn");
 
-const endModal = document.getElementById("endModal");
-const rankList = document.getElementById("rankList");
-const restartBtn = document.getElementById("restartBtn");
-const leaveBtn = document.getElementById("leaveBtn");
+const board = document.getElementById("board");
+const playersDiv = document.getElementById("players");
+const scoreDiv = document.getElementById("score");
+const turnInfo = document.getElementById("turnInfo");
+const roomTitle = document.getElementById("roomTitle");
 
-let myId = null;
-let currentRoom = null;
+const rankingList = document.getElementById("ranking");
+const fireworksCanvas = document.getElementById("fireworks");
+
+/* ---------- 상태 ---------- */
+let myId;
+let currentRoom;
+let currentCardStyle = "emoji";
 let cards = {};
-let cardStyle = "emoji";
-let gameRunning = false;
+let canFlip = false;
 
-// 🔥 초기 화면 강제 세팅
-lobbyDiv.classList.remove("hidden");
-roomDiv.classList.add("hidden");
-gameDiv.classList.add("hidden");
-endModal.classList.add("hidden");
-
-/* =====================
-   기본
-===================== */
+/* ---------- 소켓 연결 ---------- */
 socket.on("connect", () => {
   myId = socket.id;
 });
 
-/* =====================
-   방 생성
-===================== */
-createRoomBtn.onclick = () => {
-  const nickname = nicknameInput.value.trim();
-  if (!nickname) return alert("닉네임 입력");
+/* ---------- 카드 스타일 UI ---------- */
+cardStyleSelect.onchange = () => {
+  imageUpload.classList.toggle(
+    "hidden",
+    cardStyleSelect.value !== "image"
+  );
+};
 
-  cardStyle = cardStyleSelect.value;
+/* ---------- 방 만들기 ---------- */
+createBtn.onclick = async () => {
+  const nickname = nicknameInput.value.trim();
+  if (!nickname) return alert("닉네임은 필수입니다");
+
+  currentCardStyle = cardStyleSelect.value;
+  let imagePaths = [];
+
+  if (currentCardStyle === "image") {
+    if (imageUpload.files.length < 24) {
+      return alert("이미지는 최소 24장 필요합니다");
+    }
+
+    const formData = new FormData();
+    for (let i = 0; i < 24; i++) {
+      formData.append("images", imageUpload.files[i]);
+    }
+
+    const res = await fetch("/upload", {
+      method: "POST",
+      body: formData
+    });
+
+    imagePaths = await res.json();
+  }
 
   socket.emit("createRoom", {
     nickname,
-    cardStyle
+    cardStyle: currentCardStyle,
+    images: imagePaths
   });
 };
 
-/* =====================
-   방 목록
-===================== */
+/* ---------- 방 목록 ---------- */
 socket.on("roomList", rooms => {
   roomList.innerHTML = "";
+
   Object.values(rooms).forEach(room => {
+    if (room.started) return;
+
     const li = document.createElement("li");
-    li.textContent = room.name;
+    li.textContent = `${room.name} (${Object.keys(room.players).length}명)`;
+
     li.onclick = () => {
+      const nickname = nicknameInput.value.trim();
+      if (!nickname) return alert("닉네임 필수");
+
+      currentRoom = room.id;
+      currentCardStyle = room.cardStyle;
+
       socket.emit("joinRoom", {
         roomId: room.id,
-        nickname: nicknameInput.value
+        nickname
       });
+
+      lobby.classList.add("hidden");
+      roomDiv.classList.remove("hidden");
+      roomTitle.textContent = room.name;
     };
+
     roomList.appendChild(li);
   });
 });
 
-/* =====================
-   방 업데이트
-===================== */
+/* ---------- 방 업데이트 ---------- */
 socket.on("roomUpdate", room => {
-  currentRoom = room.id;
-  lobbyDiv.classList.add("hidden");
-  roomDiv.classList.remove("hidden");
+  if (room.id !== currentRoom) return;
 
-  document.getElementById("roomTitle").textContent = room.name;
-
-  if (room.host === myId) {
-    startBtn.classList.remove("hidden");
-  }
-});
-
-/* =====================
-   게임 시작
-===================== */
-startBtn.onclick = () => {
-  socket.emit("startGame", currentRoom);
-};
-
-socket.on("gameStarted", data => {
-  const { deck, currentPlayer } = data;
-
-   gameRunning = true;
-   endModal.classList.add("hidden");
-  roomDiv.classList.add("hidden");
-  gameDiv.classList.remove("hidden");
-  gameDiv.innerHTML = "";
-  cards = {};
-
-  deck.forEach(card => {
-    const div = document.createElement("div");
-    div.className = "card";
-    div.dataset.id = card.id;
-    div.dataset.value = card.value;
-    div.innerHTML = "";
-     
-    div.onclick = () => {
-      // 이미 열린 카드거나 제거된 카드면 무시
-      if (div.classList.contains("open") || div.classList.contains("matched")) return;
-
-      socket.emit("flipCard", {
-        roomId: currentRoom,
-        card: {
-          id: card.id,
-          value: card.value
-        }
-      });
-    };
-
-    div.textContent = card.value;
-    cards[card.id] = div;
-    gameDiv.appendChild(div);
+  playersDiv.innerHTML = "";
+  Object.values(room.players).forEach(p => {
+    const d = document.createElement("div");
+    d.textContent = p.nickname;
+    playersDiv.appendChild(d);
   });
 
-  updateTurnUI(currentPlayer);
+  if (room.host === myId && !room.started) {
+    startBtn.classList.remove("hidden");
+    startBtn.onclick = () => socket.emit("startGame", room.id);
+  }
 });
 
-/* =====================
-   턴 UI
-===================== */
-function updateTurnUI(currentPlayer) {
-  Object.values(cards).forEach(c => c.classList.remove("my-turn"));
-  if (currentPlayer === myId) {
-    Object.values(cards).forEach(c => c.classList.add("my-turn"));
+/* ---------- 게임 시작 ---------- */
+socket.on("gameStarted", data => {
+  board.innerHTML = "";
+  cards = {};
+  canFlip = true;
+
+  data.deck.forEach(card => {
+    const div = document.createElement("div");
+    div.className = "card";
+
+    if (currentCardStyle === "image") {
+      const img = document.createElement("img");
+      img.src = card.value;
+      div.appendChild(img);
+    } else {
+      div.textContent = "?";
+    }
+
+    div.onclick = () => {
+      if (!canFlip || div.classList.contains("open")) return;
+      socket.emit("flipCard", { roomId: currentRoom, card });
+    };
+
+    board.appendChild(div);
+    cards[card.id] = div;
+  });
+
+  updateTurn(data.currentPlayer, data.turnCount, data.players);
+});
+
+/* ---------- 카드 뒤집기 ---------- */
+socket.on("cardFlipped", card => {
+  const el = cards[card.id];
+  if (!el) return;
+
+  el.classList.add("open");
+  if (currentCardStyle === "image") {
+    el.querySelector("img").style.display = "block";
+  } else {
+    el.textContent = card.value;
   }
+});
+
+/* ---------- 실패 ---------- */
+socket.on("pairFailed", ids => {
+  canFlip = false;
+  setTimeout(() => {
+    ids.forEach(id => {
+      const el = cards[id];
+      if (!el) return;
+      el.classList.remove("open");
+      if (currentCardStyle === "image") {
+        el.querySelector("img").style.display = "none";
+      } else {
+        el.textContent = "?";
+      }
+    });
+    canFlip = true;
+  }, 800);
+});
+
+/* ---------- 성공 ---------- */
+socket.on("pairMatched", data => {
+  data.cards.forEach(id => {
+    const el = cards[id];
+    if (el) el.classList.add("matched");
+  });
+});
+
+/* ---------- 턴 / 점수 ---------- */
+socket.on("turnUpdate", data => {
+  updateTurn(data.currentPlayer, data.turnCount, data.players);
+});
+
+function updateTurn(currentPlayer, turnCount, players) {
+  turnInfo.textContent =
+    `턴 ${turnCount} / 현재 차례: ${players[currentPlayer].nickname}`;
+
+  scoreDiv.innerHTML = "";
+  Object.values(players).forEach(p => {
+    const d = document.createElement("div");
+    d.textContent = `${p.nickname}: ${p.score}점`;
+    scoreDiv.appendChild(d);
+  });
 }
 
-socket.on("turnUpdate", data => {
-  updateTurnUI(data.currentPlayer);
-});
+/* ---------- 종료 ---------- */
+socket.on("gameEnded", players => {
+  roomDiv.classList.add("hidden");
+  resultDiv.classList.remove("hidden");
 
-/* =====================
-   카드 처리
-===================== */
-socket.on("cardFlipped", card => {
-  const div = cards[card.id];
-  if (!div) return;
+  const ranked = Object.values(players)
+    .sort((a, b) => b.score - a.score);
 
-  div.classList.add("open");
+  rankingList.innerHTML = "";
+  ranked.forEach((p, i) => {
+    const li = document.createElement("li");
+    li.textContent = `${i + 1}위 ${p.nickname} (${p.score}점)`;
+    rankingList.appendChild(li);
+  });
 
-  if (cardStyle === "image") {
-    const img = document.createElement("img");
-    img.src = card.value;
-    div.appendChild(img);
-  } else {
-    div.textContent = card.value;
+  if (ranked[0].socketId === myId) {
+    startFireworks();
   }
 });
 
-socket.on("pairMatched", data => {
-  const { cards: ids } = data;
+/* ---------- 폭죽 ---------- */
+function startFireworks() {
+  const c = fireworksCanvas;
+  const ctx = c.getContext("2d");
 
-  setTimeout(() => {
-    ids.forEach(id => {
-      const div = cards[id];
-      if (!div) return;
-      div.classList.add("matched");
-      div.innerHTML = "";
-      div.style.visibility = "hidden"; // 완전히 안 보이게
+  c.width = window.innerWidth;
+  c.height = window.innerHeight;
+
+  const parts = [];
+  for (let i = 0; i < 150; i++) {
+    parts.push({
+      x: c.width / 2,
+      y: c.height / 2,
+      vx: Math.random() * 6 - 3,
+      vy: Math.random() * 6 - 3,
+      life: 100,
+      color: `hsl(${Math.random() * 360},100%,50%)`
     });
-  }, 800);
-});
+  }
 
-socket.on("pairFailed", ids => {
-  setTimeout(() => {
-    ids.forEach(id => {
-      const div = cards[id];
-      if (!div) return;
-      div.classList.remove("open");
-      div.innerHTML = ""; // 다시 뒷면
+  function draw() {
+    ctx.clearRect(0, 0, c.width, c.height);
+    parts.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life--;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+      ctx.fill();
     });
-  }, 800);
-});
+    if (parts.some(p => p.life > 0)) requestAnimationFrame(draw);
+  }
 
-/* =====================
-   게임 종료
-===================== */
-socket.on("gameEnded", players => {
-   console.log("gameEnded received");
-   if (!gameRunning) return; // 🔥 여기서 1차 차단
-  gameRunning = false;
-   if (!currentRoom) return; // 🔥 방 없으면 무시
-   
-  endModal.classList.remove("hidden");
-  rankList.innerHTML = "";
-
-  Object.values(players)
-    .sort((a,b)=>b.score-a.score)
-    .forEach(p => {
-      const li = document.createElement("li");
-      li.textContent = `${p.nickname} : ${p.score}`;
-      rankList.appendChild(li);
-    });
-});
-
-/* =====================
-   종료 버튼
-===================== */
-restartBtn.onclick = () => {
-   if (!currentRoom) return;
-  endModal.classList.add("hidden");
-   gameRunning = true;
-  gameDiv.innerHTML = "";
-  socket.emit("startGame", currentRoom);
-};
-
-leaveBtn.onclick = () => {
-  socket.disconnect();
-  location.reload();
-};
+  draw();
+}
