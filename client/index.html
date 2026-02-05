@@ -2,46 +2,57 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>멀티 메모리 게임</title>
+  <title>메모리 게임</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
+<!-- 로비 -->
 <div id="lobby">
-  <h1>🧠 메모리 게임</h1>
+  <h1>메모리 게임</h1>
 
-  <input id="nicknameInput" placeholder="닉네임" />
-  
+  <input id="nickname" placeholder="닉네임 (필수)" />
+
   <select id="cardStyle">
     <option value="emoji">이모지</option>
     <option value="number">숫자</option>
-    <option value="image">이미지</option>
+    <option value="image">사용자 이미지</option>
   </select>
 
-  <input type="file" id="imageUpload" multiple accept="image/*" />
+  <input
+    type="file"
+    id="imageUpload"
+    accept="image/*"
+    multiple
+    class="hidden"
+  />
 
-  <button id="createRoomBtn">방 만들기</button>
+  <button id="createBtn">방 만들기</button>
 
   <h2>방 목록</h2>
   <ul id="roomList"></ul>
 </div>
 
+<!-- 방 -->
 <div id="room" class="hidden">
   <h2 id="roomTitle"></h2>
+
+  <div id="players"></div>
+
   <button id="startBtn" class="hidden">게임 시작</button>
+
+  <div id="turnInfo"></div>
+  <div id="score"></div>
+
+  <div id="board"></div>
 </div>
 
-<div id="game" class="hidden"></div>
-
-<div id="endModal" class="hidden">
-  <h2>🎉 게임 종료</h2>
-  <ul id="rankList"></ul>
-  <div class="endBtns">
-    <button id="restartBtn">다시하기</button>
-    <button id="leaveBtn">나가기</button>
-  </div>
-  <div id="fireworks"></div>
+<!-- 결과 -->
+<div id="result" class="hidden">
+  <h2>🏆 결과</h2>
+  <ul id="ranking"></ul>
+  <canvas id="fireworks"></canvas>
+  <button onclick="location.reload()">다시 하기</button>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
