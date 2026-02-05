@@ -1,195 +1,91 @@
-/* =========================
-   기본 리셋
-========================= */
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+  font-family: system-ui, sans-serif;
 }
 
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #f5f6fa;
-  color: #333;
-}
-
-/* =========================
-   공통
-========================= */
-.hidden {
-  display: none !important;
-}
-
-button {
-  padding: 10px 16px;
-  border: none;
-  border-radius: 6px;
-  background: #4caf50;
+  margin: 0;
+  background: #111;
   color: #fff;
-  font-size: 14px;
-  cursor: pointer;
 }
 
-button:hover {
-  background: #43a047;
+.hidden {
+  display: none;
 }
 
-button:disabled {
-  background: #aaa;
-  cursor: not-allowed;
-}
-
-input, select {
-  padding: 8px;
-  font-size: 14px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-/* =========================
-   로비
-========================= */
-#lobby {
-  max-width: 480px;
-  margin: 40px auto;
-  padding: 20px;
-}
-
-#lobby h1 {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-#roomList {
-  list-style: none;
-  margin-top: 16px;
-}
-
-#roomList li {
-  padding: 12px;
-  background: #fff;
-  border-radius: 6px;
-  margin-bottom: 8px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-#roomList li:hover {
-  background: #e8f5e9;
-}
-
-/* =========================
-   게임 화면
-========================= */
-#game {
-  max-width: 720px;
-  margin: 20px auto;
+#lobby, #room {
   padding: 16px;
 }
 
-/* 상단 상태 영역 */
-#statusBar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-/* =========================
-   보드
-========================= */
-#board {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 10px;
-  margin-top: 10px;
-}
-
-/* 카드 */
-.card {
-  aspect-ratio: 1;
-  background: #bdbdbd;
-  border-radius: 8px;
-  font-size: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+#roomList li {
   cursor: pointer;
-  user-select: none;
-  transition: transform 0.2s, background 0.2s;
+  padding: 8px;
+  border-bottom: 1px solid #333;
 }
 
-.card:hover {
-  transform: scale(1.05);
+#roomList li:hover {
+  background: #222;
 }
 
-.card.matched {
-  visibility: hidden;
+#game {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 10px;
+  padding: 10px;
 }
 
-/* =========================
-   내 차례 표시
-========================= */
-.my-turn {
-  border: 4px solid #4caf50;
+.card {
+  background: #333;
   border-radius: 10px;
-  animation: pulse 1s infinite;
+  aspect-ratio: 1/1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  cursor: pointer;
+  transition: transform 0.3s, border 0.3s;
 }
 
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 12px rgba(76, 175, 80, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
-  }
+.card img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
 }
 
-/* =========================
-   결과 화면
-========================= */
-#result {
+.card.my-turn {
+  border: 3px solid #00ffcc;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0% { border-color: #00ffcc; }
+  50% { border-color: #fff; }
+  100% { border-color: #00ffcc; }
+}
+
+/* 종료 모달 */
+#endModal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.9);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
 }
 
-#result .panel {
-  background: #fff;
-  padding: 24px;
-  border-radius: 10px;
-  width: 300px;
-  text-align: center;
+.endBtns button {
+  margin: 10px;
+  padding: 10px 20px;
+  font-size: 1rem;
 }
 
-#result h2 {
-  margin-bottom: 16px;
-}
-
-#result ul {
-  list-style: none;
-  margin-bottom: 16px;
-}
-
-#result li {
-  margin-bottom: 6px;
-}
-
-/* =========================
-   모바일 대응
-========================= */
+/* 모바일 */
 @media (max-width: 600px) {
-  #board {
-    grid-template-columns: repeat(4, 1fr);
+  #game {
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
   }
-
   .card {
-    font-size: 24px;
+    font-size: 1.5rem;
   }
 }
