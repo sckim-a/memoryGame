@@ -182,6 +182,32 @@ io.on("connection", socket => {
     }, 700);
   });
 
+   /* ---------- 게임 다시하기 ---------- */
+   socket.on("restartGame", roomId => {
+     const room = rooms[roomId];
+     if (!room || room.host !== socket.id) return;
+   
+     room.started = true;
+     room.deck = createDeck(room.cardStyle);
+     room.turnIndex = 0;
+     room.turnCount = 1;
+     room.flipped = [];
+     room.failedCountInRound = 0;
+   
+     Object.values(room.players).forEach(p => {
+       p.score = 0;
+       p.streak = 0;
+     });
+   
+     io.to(roomId).emit("gameStarted", {
+       deck: room.deck,
+       players: room.players,
+       order: room.order,
+       currentPlayer: room.order[0],
+       turnCount: room.turnCount
+     });
+   });
+
   socket.on("disconnect", () => {
     for (const id in rooms) {
       const r = rooms[id];
@@ -195,3 +221,4 @@ io.on("connection", socket => {
 server.listen(PORT, () => {
   console.log("Server running on", PORT);
 });
+
