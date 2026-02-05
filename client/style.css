@@ -24,7 +24,7 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.3s;
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 .card.open {
@@ -34,7 +34,8 @@ body {
 }
 
 .card.matched {
-  visibility: hidden;
+  opacity: 0;
+  transform: scale(0.8);
 }
 
 .card img {
