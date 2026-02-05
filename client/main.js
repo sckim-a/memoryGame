@@ -21,6 +21,7 @@ const roomTitle = document.getElementById("roomTitle");
 
 const rankingList = document.getElementById("ranking");
 const fireworksCanvas = document.getElementById("fireworks");
+const NICKNAME_KEY = "memorygame_nickname";
 
 /* ---------- 상태 ---------- */
 let myId;
@@ -28,6 +29,12 @@ let currentRoom;
 let currentCardStyle = "emoji";
 let cards = {};
 let canFlip = false;
+
+// 저장된 닉네임 자동 복원
+const savedNickname = localStorage.getItem(NICKNAME_KEY);
+if (savedNickname) {
+  nicknameInput.value = savedNickname;
+}
 
 /* ---------- 소켓 연결 ---------- */
 socket.on("connect", () => {
@@ -47,6 +54,8 @@ createBtn.onclick = async () => {
   const nickname = nicknameInput.value.trim();
   if (!nickname) return alert("닉네임은 필수입니다");
 
+  localStorage.setItem(NICKNAME_KEY, nickname);
+  
   currentCardStyle = cardStyleSelect.value;
   let imagePaths = [];
 
@@ -89,6 +98,7 @@ socket.on("roomList", rooms => {
       const nickname = nicknameInput.value.trim();
       if (!nickname) return alert("닉네임 필수");
 
+      localStorage.setItem(NICKNAME_KEY, nickname);
       currentRoom = room.id;
       currentCardStyle = room.cardStyle;
 
