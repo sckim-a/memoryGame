@@ -209,6 +209,60 @@ io.on("connection", socket => {
       }
     }
   });
+
+  socket.on("restartGame", roomId => {
+     const room = rooms[roomId];
+     if (!room) return;
+   
+     // 방장만 가능
+     if (room.host !== socket.id) return;
+   
+     // 게임 상태 초기화
+     room.started = true;
+     room.deck = createDeck();
+     room.turnIndex = 0;
+     room.turnCount = 1;
+     room.flipped = [];
+     room.failedCountInRound = 0;
+   
+     // 플레이어 점수 초기화
+     Object.values(room.players).forEach(p => {
+       p.score = 0;
+       p.streak = 0;
+     });
+   
+     io.to(roomId).emit("gameStarted", {
+       deck: room.deck,
+       players: room.players,
+       order: room.order,
+       currentPlayer: room.order[room.turnIndex],
+       turnCount: room.turnCount
+     });
+   });
+
+   socket.on("leaveRoom", roomId => {
+     const room = rooms[roomId];
+     if (!room) return;
+   
+     delete room.players[socket.id];
+     room.order = room.order.filter(id => id !== socket.id);
+   
+     // 방장 위임
+     if (room.host === socket.id) {
+       room.host = room.order[0] || null;
+     }
+   
+     socket.leave(roomId);
+   
+     if (room.order.length === 0) {
+       delete rooms[roomId];
+     } else {
+       io.to(roomId).emit("roomUpdate", room);
+     }
+   
+     io.emit("roomList", rooms);
+   });
+
 });
 
 /* ===============================
@@ -247,3 +301,4 @@ setInterval(() => {
 server.listen(PORT, () => {
   console.log("Server running on", PORT);
 });
+
