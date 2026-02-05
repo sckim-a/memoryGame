@@ -198,10 +198,24 @@ socket.on("pairFailed", ids => {
 
 /* ---------- 성공 ---------- */
 socket.on("pairMatched", data => {
-  data.cards.forEach(id => {
-    const el = cards[id];
-    if (el) el.classList.add("matched");
-  });
+  // 이미 cardFlipped에서 두 장은 열린 상태
+  canFlip = false;
+
+  // 잠깐 보여주기
+  setTimeout(() => {
+    data.cards.forEach(id => {
+      const el = cards[id];
+      if (!el) return;
+
+      el.classList.add("matched");
+
+      // 완전히 제거 (클릭/표시 안 됨)
+      el.style.visibility = "hidden";
+      el.style.pointerEvents = "none";
+    });
+
+    canFlip = true;
+  }, 600); // ← 여기 시간 조절 가능 (ms)
 });
 
 /* ---------- 턴 / 점수 ---------- */
