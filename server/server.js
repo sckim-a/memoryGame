@@ -45,16 +45,16 @@ io.on("connection", socket => {
 
   socket.on("createRoom", ({ nickname, cardStyle }) => {
     if (!nickname) return;
-
+  
     const roomId = `room-${Date.now()}`;
-
+  
     rooms[roomId] = {
       id: roomId,
       name: `메모리게임${Object.keys(rooms).length + 1}`,
       host: socket.id,
       started: false,
       cardStyle,
-      deck: createDeck(cardStyle),
+      deck: createDeck(),
       order: [socket.id],
       turnIndex: 0,
       turnCount: 1,
@@ -70,8 +70,10 @@ io.on("connection", socket => {
         }
       }
     };
-
+  
     socket.join(roomId);
+  
+    // 🔥 이게 핵심
     io.to(roomId).emit("roomUpdate", rooms[roomId]);
     io.emit("roomList", rooms);
   });
@@ -196,4 +198,5 @@ io.on("connection", socket => {
 server.listen(PORT, () => {
   console.log("Server running on", PORT);
 });
+
 
