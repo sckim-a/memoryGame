@@ -208,3 +208,25 @@ body {
   }
 }
 
+/* 플레이어 목록 */
+#players div {
+  padding: 6px 10px;
+  font-size: 16px;
+  border-radius: 6px;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* 현재 차례 플레이어 */
+#players .active-turn {
+  background: #ffe066;
+  color: #000;
+  font-weight: bold;
+}
+
+/* 내 차례일 경우 더 강조 (선택사항) */
+#players .active-turn.me {
+  background: #4dabf7;
+  color: white;
+}
+
+
