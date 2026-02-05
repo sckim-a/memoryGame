@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
+const multer = require("multer");
 
 const app = express();
 const server = http.createServer(app);
@@ -10,27 +11,39 @@ const io = new Server(server);
 const PORT = process.env.PORT || 3000;
 const RECONNECT_LIMIT = 60 * 1000;
 
+/* ================= static ================= */
 app.use(express.static(path.join(__dirname, "../client")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../client/index.html"));
 });
 
+/* ================= upload ================= */
+const storage = multer.diskStorage({
+  destination: (_, __, cb) => cb(null, path.join(__dirname, "uploads")),
+  filename: (_, file, cb) => cb(null, Date.now() + "_" + file.originalname)
+});
+const upload = multer({ storage });
+
+app.post("/upload", upload.single("image"), (req, res) => {
+  res.json({ url: "/uploads/" + req.file.filename });
+});
+
+/* ================= game state ================= */
 const rooms = {};
 
 function createDeck(style, imageUrl) {
-  const base = Array.from({ length: 24 }, (_, i) => i + 1);
+  const emojis = ["🐶","🐱","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐔","🐧","🐦","🐤","🦄","🐝","🦋","🐞","🐢","🐙","🦀","🐬"];
   let values;
+  if (style === "number") values = Array.from({ length: 24 }, (_, i) => i + 1);
+  if (style === "emoji") values = emojis;
+  if (style === "image") values = Array.from({ length: 24 }, () => imageUrl);
 
-  if (style === "number") values = base.map(n => n);
-  if (style === "emoji") values = ["🐶","🐱","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐔","🐧","🐦","🐤","🦄","🐝","🦋","🐞","🐢","🐙","🦀","🐬"];
-  if (style === "image") values = base.map(() => imageUrl);
-
-  const deck = values.flatMap((v, i) => ([
+  return values.flatMap((v, i) => ([
     { id: i + "a", value: v },
     { id: i + "b", value: v }
-  ]));
-
-  return deck.sort(() => Math.random() - 0.5);
+  ])).sort(() => Math.random() - 0.5);
 }
 
 io.on("connection", socket => {
@@ -48,7 +61,7 @@ io.on("connection", socket => {
       turnIndex: 0,
       turnCount: 1,
       flipped: [],
-      failedCountInRound: 0,
+      failedCount: 0,
       players: {
         [socket.id]: { socketId: socket.id, nickname, score: 0, streak: 0, disconnectedAt: null }
       }
@@ -59,75 +72,84 @@ io.on("connection", socket => {
   });
 
   socket.on("joinRoom", ({ roomId, nickname }) => {
-    const room = rooms[roomId];
-    if (!room || room.started) return;
+    const r = rooms[roomId];
+    if (!r || r.started) return;
 
-    room.players[socket.id] = { socketId: socket.id, nickname, score: 0, streak: 0, disconnectedAt: null };
-    room.order.push(socket.id);
+    r.players[socket.id] = { socketId: socket.id, nickname, score: 0, streak: 0, disconnectedAt: null };
+    r.order.push(socket.id);
     socket.join(roomId);
 
     io.emit("roomList", rooms);
-    io.to(roomId).emit("roomUpdate", room);
+    io.to(roomId).emit("roomUpdate", r);
   });
 
   socket.on("startGame", roomId => {
-    const room = rooms[roomId];
-    if (!room || room.host !== socket.id) return;
-
-    room.started = true;
+    const r = rooms[roomId];
+    if (!r || r.host !== socket.id) return;
+    r.started = true;
     io.emit("roomList", rooms);
-
-    io.to(roomId).emit("gameStarted", {
-      deck: room.deck,
-      players: room.players,
-      order: room.order,
-      currentPlayer: room.order[room.turnIndex],
-      turnCount: room.turnCount,
-      cardStyle: room.cardStyle
-    });
+    io.to(roomId).emit("gameStarted", r);
   });
 
   socket.on("flipCard", ({ roomId, card }) => {
-    const room = rooms[roomId];
-    if (!room) return;
-    const current = room.order[room.turnIndex];
-    if (socket.id !== current || room.flipped.length >= 2) return;
+    const r = rooms[roomId];
+    if (!r) return;
+    const current = r.order[r.turnIndex];
+    if (socket.id !== current || r.flipped.length >= 2) return;
 
-    room.flipped.push(card);
+    r.flipped.push(card);
     io.to(roomId).emit("cardFlipped", card);
 
-    if (room.flipped.length < 2) return;
+    if (r.flipped.length < 2) return;
 
-    const [a, b] = room.flipped;
-    const player = room.players[current];
-    const match = a.value === b.value;
+    const [a, b] = r.flipped;
+    const p = r.players[current];
 
-    if (match) {
-      player.streak++;
-      player.score += player.streak;
-      io.to(roomId).emit("pairMatched", { cards: [a.id, b.id], playerId: current });
-      room.deck = room.deck.filter(c => c.id !== a.id && c.id !== b.id);
+    if (a.value === b.value) {
+      p.streak++;
+      p.score += p.streak;
+      io.to(roomId).emit("pairMatched", { cards: [a.id, b.id], players: r.players });
+      r.deck = r.deck.filter(c => c.id !== a.id && c.id !== b.id);
     } else {
-      player.streak = 0;
+      p.streak = 0;
       io.to(roomId).emit("pairFailed", [a.id, b.id]);
-      room.turnIndex = (room.turnIndex + 1) % room.order.length;
-      room.failedCountInRound++;
+      r.turnIndex = (r.turnIndex + 1) % r.order.length;
+      r.failedCount++;
     }
 
-    room.flipped = [];
-    if (room.failedCountInRound >= room.order.length) {
-      room.turnCount++;
-      room.failedCountInRound = 0;
+    r.flipped = [];
+    if (r.failedCount >= r.order.length) {
+      r.turnCount++;
+      r.failedCount = 0;
     }
 
-    io.to(roomId).emit("turnUpdate", {
-      currentPlayer: room.order[room.turnIndex],
-      turnCount: room.turnCount,
-      players: room.players
-    });
+    io.to(roomId).emit("turnUpdate", { currentPlayer: r.order[r.turnIndex], turnCount: r.turnCount, players: r.players });
 
-    if (room.deck.length === 0) io.to(roomId).emit("gameEnded", room.players);
+    if (r.deck.length === 0) io.to(roomId).emit("gameEnded", r.players);
+  });
+
+  socket.on("restartGame", roomId => {
+    const r = rooms[roomId];
+    if (!r) return;
+    r.deck = createDeck(r.cardStyle, r.imageUrl);
+    r.turnIndex = 0;
+    r.turnCount = 1;
+    r.failedCount = 0;
+    r.flipped = [];
+    Object.values(r.players).forEach(p => { p.score = 0; p.streak = 0; });
+    io.to(roomId).emit("gameStarted", r);
+  });
+
+  socket.on("leaveRoom", roomId => {
+    const r = rooms[roomId];
+    if (!r) return;
+    delete r.players[socket.id];
+    r.order = r.order.filter(id => id !== socket.id);
+    if (r.host === socket.id) r.host = r.order[0] || null;
+    socket.leave(roomId);
+    if (r.order.length === 0) delete rooms[roomId];
+    io.emit("roomList", rooms);
   });
 });
 
-server.listen(PORT, () => console.log("Server running on", PORT));
+server.listen(PORT, () => console.log("Server running", PORT));
