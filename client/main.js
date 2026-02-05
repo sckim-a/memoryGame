@@ -1,129 +1,172 @@
 const socket = io();
 
-let currentRoom = null;
-let cards = {};
-let myId = null;
-let currentTurnPlayer = null;
-
-const lobby = document.getElementById("lobby");
-const room = document.getElementById("room");
-const game = document.getElementById("game");
-const board = document.getElementById("board");
+const lobbyDiv = document.getElementById("lobby");
+const roomDiv = document.getElementById("room");
+const gameDiv = document.getElementById("game");
 const roomList = document.getElementById("roomList");
+
+const nicknameInput = document.getElementById("nicknameInput");
+const cardStyleSelect = document.getElementById("cardStyle");
+const imageUpload = document.getElementById("imageUpload");
+
+const createRoomBtn = document.getElementById("createRoomBtn");
 const startBtn = document.getElementById("startBtn");
 
+const endModal = document.getElementById("endModal");
+const rankList = document.getElementById("rankList");
+const restartBtn = document.getElementById("restartBtn");
+const leaveBtn = document.getElementById("leaveBtn");
+
+let myId = null;
+let currentRoom = null;
+let cards = {};
+let cardStyle = "emoji";
+
+/* =====================
+   기본
+===================== */
 socket.on("connect", () => {
   myId = socket.id;
 });
 
+/* =====================
+   방 생성
+===================== */
+createRoomBtn.onclick = () => {
+  const nickname = nicknameInput.value.trim();
+  if (!nickname) return alert("닉네임 입력");
+
+  cardStyle = cardStyleSelect.value;
+
+  socket.emit("createRoom", {
+    nickname,
+    cardStyle
+  });
+};
+
+/* =====================
+   방 목록
+===================== */
 socket.on("roomList", rooms => {
   roomList.innerHTML = "";
-  Object.values(rooms).forEach(r => {
-    if (r.started) return;
+  Object.values(rooms).forEach(room => {
     const li = document.createElement("li");
-    li.textContent = r.name;
-    li.onclick = () => joinRoom(r.id);
+    li.textContent = room.name;
+    li.onclick = () => {
+      socket.emit("joinRoom", {
+        roomId: room.id,
+        nickname: nicknameInput.value
+      });
+    };
     roomList.appendChild(li);
   });
 });
 
-function createRoom() {
-  const nickname = document.getElementById("nickname").value;
-  const cardStyle = document.getElementById("cardStyle").value;
-  localStorage.setItem("nickname", nickname);
-  socket.emit("createRoom", { nickname, cardStyle });
-}
-
-function joinRoom(roomId) {
-  const nickname = localStorage.getItem("nickname");
-  socket.emit("joinRoom", { roomId, nickname });
-  currentRoom = roomId;
-}
-
+/* =====================
+   방 업데이트
+===================== */
 socket.on("roomUpdate", room => {
   currentRoom = room.id;
+  lobbyDiv.classList.add("hidden");
+  roomDiv.classList.remove("hidden");
 
-  /* === 화면 전환 === */
-  lobby.style.display = "none";
-  room.style.display = "block";
-  game.style.display = "none";
+  document.getElementById("roomTitle").textContent = room.name;
 
-  /* === 방 정보 렌더링 === */
-  renderPlayers(room.players);
-  renderRoomInfo(room);
-
-  /* === 방장만 시작 버튼 === */
   if (room.host === myId) {
-    startBtn.style.display = "block";
-  } else {
-    startBtn.style.display = "none";
+    startBtn.classList.remove("hidden");
   }
 });
 
-function startGame() {
+/* =====================
+   게임 시작
+===================== */
+startBtn.onclick = () => {
   socket.emit("startGame", currentRoom);
-}
+};
 
 socket.on("gameStarted", data => {
-  lobby.classList.add("hidden");
-  game.classList.remove("hidden");
+  const { deck, currentPlayer } = data;
 
-  board.innerHTML = "";
+  roomDiv.classList.add("hidden");
+  gameDiv.classList.remove("hidden");
+  gameDiv.innerHTML = "";
   cards = {};
-  currentTurnPlayer = data.currentPlayer;
 
-  data.deck.forEach(card => {
+  deck.forEach(card => {
     const div = document.createElement("div");
     div.className = "card";
     div.onclick = () => {
-      socket.emit("flipCard", { roomId: currentRoom, card });
+      socket.emit("flipCard", {
+        roomId: currentRoom,
+        card
+      });
     };
+
     div.textContent = card.value;
     cards[card.id] = div;
-    board.appendChild(div);
+    gameDiv.appendChild(div);
   });
 
-  updateTurnUI();
+  updateTurnUI(currentPlayer);
 });
 
+/* =====================
+   턴 UI
+===================== */
+function updateTurnUI(currentPlayer) {
+  Object.values(cards).forEach(c => c.classList.remove("my-turn"));
+  if (currentPlayer === myId) {
+    Object.values(cards).forEach(c => c.classList.add("my-turn"));
+  }
+}
+
+socket.on("turnUpdate", data => {
+  updateTurnUI(data.currentPlayer);
+});
+
+/* =====================
+   카드 처리
+===================== */
 socket.on("cardFlipped", card => {
   cards[card.id].textContent = card.value;
 });
 
 socket.on("pairMatched", data => {
   data.cards.forEach(id => {
-    cards[id].classList.add("matched");
+    setTimeout(() => cards[id].remove(), 500);
   });
 });
 
 socket.on("pairFailed", ids => {
-  ids.forEach(id => {
-    cards[id].textContent = "";
-  });
+  setTimeout(() => {
+    ids.forEach(id => cards[id].textContent = "");
+  }, 800);
 });
 
-socket.on("turnUpdate", data => {
-  currentTurnPlayer = data.currentPlayer;
-  updateTurnUI();
-});
-
+/* =====================
+   게임 종료
+===================== */
 socket.on("gameEnded", players => {
-  document.getElementById("result").classList.remove("hidden");
+  endModal.classList.remove("hidden");
+  rankList.innerHTML = "";
+
+  Object.values(players)
+    .sort((a,b)=>b.score-a.score)
+    .forEach(p => {
+      const li = document.createElement("li");
+      li.textContent = `${p.nickname} : ${p.score}`;
+      rankList.appendChild(li);
+    });
 });
 
-function updateTurnUI() {
-  if (currentTurnPlayer === myId) {
-    game.classList.add("my-turn");
-  } else {
-    game.classList.remove("my-turn");
-  }
-}
+/* =====================
+   종료 버튼
+===================== */
+restartBtn.onclick = () => {
+  endModal.classList.add("hidden");
+  socket.emit("startGame", currentRoom);
+};
 
-function restartGame() {
-  socket.emit("restartGame", currentRoom);
-  document.getElementById("result").classList.add("hidden");
-}
-
-function exitGame() {
+leaveBtn.onclick = () => {
   location.reload();
-}
+};
