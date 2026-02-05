@@ -6,9 +6,11 @@ let myId = null;
 let currentTurnPlayer = null;
 
 const lobby = document.getElementById("lobby");
+const room = document.getElementById("room");
 const game = document.getElementById("game");
 const board = document.getElementById("board");
 const roomList = document.getElementById("roomList");
+const startBtn = document.getElementById("startBtn");
 
 socket.on("connect", () => {
   myId = socket.id;
@@ -42,9 +44,9 @@ socket.on("roomUpdate", room => {
   currentRoom = room.id;
 
   /* === 화면 전환 === */
-  lobbyDiv.style.display = "none";
-  roomDiv.style.display = "block";
-  gameDiv.style.display = "none";
+  lobby.style.display = "none";
+  room.style.display = "block";
+  game.style.display = "none";
 
   /* === 방 정보 렌더링 === */
   renderPlayers(room.players);
