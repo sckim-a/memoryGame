@@ -104,10 +104,20 @@ socket.on("gameStarted", data => {
   deck.forEach(card => {
     const div = document.createElement("div");
     div.className = "card";
+    div.dataset.id = card.id;
+    div.dataset.value = card.value;
+    div.innerHTML = "";
+     
     div.onclick = () => {
+      // 이미 열린 카드거나 제거된 카드면 무시
+      if (div.classList.contains("open") || div.classList.contains("matched")) return;
+
       socket.emit("flipCard", {
         roomId: currentRoom,
-        card
+        card: {
+          id: card.id,
+          value: card.value
+        }
       });
     };
 
@@ -137,18 +147,42 @@ socket.on("turnUpdate", data => {
    카드 처리
 ===================== */
 socket.on("cardFlipped", card => {
-  cards[card.id].textContent = card.value;
+  const div = cards[card.id];
+  if (!div) return;
+
+  div.classList.add("open");
+
+  if (cardStyle === "image") {
+    const img = document.createElement("img");
+    img.src = card.value;
+    div.appendChild(img);
+  } else {
+    div.textContent = card.value;
+  }
 });
 
 socket.on("pairMatched", data => {
-  data.cards.forEach(id => {
-    setTimeout(() => cards[id].remove(), 500);
-  });
+  const { cards: ids } = data;
+
+  setTimeout(() => {
+    ids.forEach(id => {
+      const div = cards[id];
+      if (!div) return;
+      div.classList.add("matched");
+      div.innerHTML = "";
+      div.style.visibility = "hidden"; // 완전히 안 보이게
+    });
+  }, 800);
 });
 
 socket.on("pairFailed", ids => {
   setTimeout(() => {
-    ids.forEach(id => cards[id].textContent = "");
+    ids.forEach(id => {
+      const div = cards[id];
+      if (!div) return;
+      div.classList.remove("open");
+      div.innerHTML = ""; // 다시 뒷면
+    });
   }, 800);
 });
 
