@@ -4,6 +4,8 @@ const socket = io();
 const lobby = document.getElementById("lobby");
 const roomDiv = document.getElementById("room");
 const resultDiv = document.getElementById("result");
+const restartBtn = document.getElementById("restartBtn");
+const leaveBtn = document.getElementById("leaveBtn");
 
 const roomList = document.getElementById("roomList");
 const nicknameInput = document.getElementById("nickname");
@@ -238,6 +240,27 @@ socket.on("gameEnded", players => {
     startFireworks();
   }
 });
+
+/* ---------- 다시하기 ---------- */
+restartBtn.onclick = () => {
+  resultDiv.classList.add("hidden");
+  roomDiv.classList.remove("hidden");
+
+  socket.emit("restartGame", currentRoom);
+};
+
+/* ---------- 나가기 ---------- */
+leaveBtn.onclick = () => {
+  socket.emit("leaveRoom", currentRoom);
+
+  currentRoom = null;
+  board.innerHTML = "";
+  cards = {};
+
+  resultDiv.classList.add("hidden");
+  roomDiv.classList.add("hidden");
+  lobby.classList.remove("hidden");
+};
 
 /* ---------- 폭죽 ---------- */
 function startFireworks() {
