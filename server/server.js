@@ -62,7 +62,7 @@ io.on("connection", socket => {
   console.log("connected:", socket.id);
 
   /* ---------- 방 생성 ---------- */
-  socket.on("createRoom", ({ nickname, cardStyle }) => {
+  socket.on("createRoom", ({ nickname, cardStyle, images }) => {
     if (!nickname) return;
 
     const roomId = `room-${Date.now()}`;
@@ -314,5 +314,6 @@ setInterval(() => {
 server.listen(PORT, () => {
   console.log("Server running on", PORT);
 });
+
 
 
