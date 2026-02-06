@@ -142,24 +142,34 @@ socket.on("gameStarted", data => {
   canFlip = true;
 
   data.deck.forEach(card => {
-    const div = document.createElement("div");
-    div.className = "card";
+    const cardEl = document.createElement("div");
+    cardEl.className = "card";
+
+    const front = document.createElement("div");
+    front.className = "front";
+    front.textContent = "?";
+
+    const back = document.createElement("div");
+    back.className = "back";
 
     if (currentCardStyle === "image") {
       const img = document.createElement("img");
       img.src = card.value;
-      div.appendChild(img);
+      back.appendChild(img);
     } else {
-      div.textContent = "?";
+      back.textContent = card.value; // 숫자 / 이모지
     }
 
-    div.onclick = () => {
-      if (!canFlip || div.classList.contains("open")) return;
+    cardEl.appendChild(front);
+    cardEl.appendChild(back);
+
+    cardEl.onclick = () => {
+      if (!canFlip || cardEl.classList.contains("open")) return;
       socket.emit("flipCard", { roomId: currentRoom, card });
     };
 
-    board.appendChild(div);
-    cards[card.id] = div;
+    board.appendChild(cardEl);
+    cards[card.id] = cardEl;
   });
 
   updateTurn(data.currentPlayer, data.turnCount, data.players);
@@ -169,13 +179,7 @@ socket.on("gameStarted", data => {
 socket.on("cardFlipped", card => {
   const el = cards[card.id];
   if (!el) return;
-
   el.classList.add("open");
-  if (currentCardStyle === "image") {
-    el.querySelector("img").style.display = "block";
-  } else {
-    el.textContent = card.value;
-  }
 });
 
 /* ---------- 실패 ---------- */
@@ -184,13 +188,7 @@ socket.on("pairFailed", ids => {
   setTimeout(() => {
     ids.forEach(id => {
       const el = cards[id];
-      if (!el) return;
-      el.classList.remove("open");
-      if (currentCardStyle === "image") {
-        el.querySelector("img").style.display = "none";
-      } else {
-        el.textContent = "?";
-      }
+      if (el) el.classList.remove("open");
     });
     canFlip = true;
   }, 800);
