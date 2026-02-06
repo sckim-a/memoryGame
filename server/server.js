@@ -27,20 +27,33 @@ const rooms = {};
 /* ===============================
    카드 덱 생성 (24쌍 = 48장)
 ================================ */
-function createDeck() {
-  const emojis = [
-    "🐶","🐱","🦊","🐻","🐼","🐨","🐯","🦁",
-    "🐮","🐷","🐸","🐵","🐔","🐧","🐦","🐤",
-    "🦄","🐝","🦋","🐞","🐢","🐙","🦀","🐬"
-  ];
+function createDeck(cardStyle, images = []) {
+  let values = [];
 
-  const deck = emojis.flatMap((e, i) => ([
-    { id: `${i}-a`, value: e },
-    { id: `${i}-b`, value: e }
+  if (cardStyle === "emoji") {
+    values = [
+      "🐶","🐱","🦊","🐻","🐼","🐨","🐯","🦁",
+      "🐮","🐷","🐸","🐵","🐔","🐧","🐦","🐤",
+      "🦄","🐝","🦋","🐞","🐢","🐙","🦀","🐬"
+    ];
+  }
+
+  if (cardStyle === "number") {
+    values = Array.from({ length: 24 }, (_, i) => i + 1);
+  }
+
+  if (cardStyle === "image") {
+    values = images; // 업로드된 이미지 경로 24개
+  }
+
+  const deck = values.flatMap((v, i) => ([
+    { id: `${i}-a`, value: v },
+    { id: `${i}-b`, value: v }
   ]));
 
   return deck.sort(() => Math.random() - 0.5);
 }
+
 
 /* ===============================
    Socket 연결
@@ -61,7 +74,7 @@ io.on("connection", socket => {
       started: false,
 
       cardStyle, // number | emoji | image
-      deck: createDeck(),
+      deck: createDeck(cardStyle, images),
 
       order: [socket.id],
       turnIndex: 0,
@@ -301,4 +314,5 @@ setInterval(() => {
 server.listen(PORT, () => {
   console.log("Server running on", PORT);
 });
+
 
