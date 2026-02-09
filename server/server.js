@@ -276,6 +276,31 @@ io.on("connection", socket => {
      io.emit("roomList", rooms);
    });
 
+   socket.on("singlePlayGameEnd", async (data) => {
+     const { nickname, turns, playTime, mode, playerCount } = data;
+   
+     // 1️⃣ 1인 플레이만 기록
+     if (playerCount !== 1) return;
+   
+     // 2️⃣ 최소 검증 (기존 로직 영향 ❌)
+     if (!nickname) return;
+     if (turns <= 0 || playTime <= 0) return;
+   
+     try {
+       await db.collection("singlePlayRankings").add({
+         nickname,
+         turns,
+         playTime,
+         mode,
+         createdAt: admin.firestore.FieldValue.serverTimestamp(),
+       });
+   
+       console.log("✅ ranking saved:", nickname, turns, playTime);
+     } catch (err) {
+       console.error("❌ ranking save error:", err);
+     }
+   });
+      
 });
 
 /* ===============================
@@ -314,6 +339,7 @@ setInterval(() => {
 server.listen(PORT, () => {
   console.log("Server running on", PORT);
 });
+
 
 
 
