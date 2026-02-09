@@ -263,6 +263,18 @@ socket.on("gameEnded", players => {
   if (ranked[0].socketId === myId) {
     startFireworks();
   }
+
+  // 1️⃣ 1인 플레이만 서버 랭킹 저장
+  if (ranked.length === 1) {
+    socket.emit("singlePlayGameEnd", {
+      nickname: ranked[0].nickname,
+      turns: turnCount,                       // 기존 변수 그대로
+      playTime: Date.now() - gameStartTime,   // 기존 시작시간 사용
+      mode: gameMode,                         // number | emoji | image
+      playerCount: 1
+    });
+  }
+  
 });
 
 /* ---------- 다시하기 ---------- */
