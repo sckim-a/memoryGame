@@ -319,30 +319,6 @@ io.on("connection", socket => {
      }
    });
 
-   socket.on("singlePlayRankings", rankings => {
-     rankingList.innerHTML = "";
-     rankingModal.classList.remove("hidden");
-   
-     rankings.forEach((r, i) => {
-       const li = document.createElement("li");
-   
-       // 시간 mm:ss 변환
-       const totalSec = Math.floor(r.playTime / 1000);
-       const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
-       const ss = String(totalSec % 60).padStart(2, "0");
-   
-       let modeText = "";
-       if (r.mode === "number") modeText = "🔢 숫자";
-       if (r.mode === "emoji") modeText = "😀 이모지";
-       if (r.mode === "image") modeText = "🖼 이미지";
-   
-       li.textContent =
-         `${i + 1}위 | ${r.nickname} | ${r.turns}턴 | ${mm}:${ss} | ${modeText}`;
-   
-       rankingList.appendChild(li);
-     });
-   });
-      
 });
 
 /* ===============================
@@ -381,6 +357,7 @@ setInterval(() => {
 server.listen(PORT, () => {
   console.log("Server running on", PORT);
 });
+
 
 
 
