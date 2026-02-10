@@ -36,6 +36,9 @@ let currentRoom;
 let currentCardStyle = "emoji";
 let cards = {};
 let canFlip = false;
+let turnCount = 0;
+let gameStartTime = 0;
+let gameMode = "emoji";
 
 // 저장된 닉네임 자동 복원
 const savedNickname = localStorage.getItem(NICKNAME_KEY);
@@ -145,7 +148,9 @@ socket.on("gameStarted", data => {
   board.innerHTML = "";
   cards = {};
   canFlip = true;
-
+  gameStartTime = Date.now();
+  gameMode = currentCardStyle;
+  
   data.deck.forEach(card => {
     const cardEl = document.createElement("div");
     cardEl.className = "card";
