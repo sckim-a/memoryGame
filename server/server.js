@@ -2,7 +2,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
-const { db } = require("./firebase");
+const { admin, db } = require("./firebase");
 
 const app = express();
 const server = http.createServer(app);
@@ -357,6 +357,7 @@ setInterval(() => {
 server.listen(PORT, () => {
   console.log("Server running on", PORT);
 });
+
 
 
 
