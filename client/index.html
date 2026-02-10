@@ -51,8 +51,22 @@
 <!-- 결과 -->
 <div id="result" class="hidden">
   <h2>🏆 결과</h2>
+
+  <!-- 기존 점수 결과 -->
   <ul id="ranking"></ul>
+
+  <!-- 🔽 추가: 서버 랭킹 버튼 -->
+  <button id="showRankingBtn">🏆 1인 플레이 랭킹 보기</button>
+
+  <!-- 🔽 추가: 랭킹 표시 영역 -->
+  <div id="rankingModal" class="hidden">
+    <h3>🏆 1인 플레이 랭킹</h3>
+    <ul id="rankingList"></ul>
+    <button id="closeRankingBtn">닫기</button>
+  </div>
+
   <canvas id="fireworks"></canvas>
+
   <div class="result-buttons">
     <button id="restartBtn">다시하기</button>
     <button id="leaveBtn">나가기</button>
@@ -63,5 +77,6 @@
 <script src="main.js"></script>
 </body>
 </html>
+
 
 
