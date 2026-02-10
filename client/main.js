@@ -287,6 +287,29 @@ socket.on("gameEnded", players => {
   
 });
 
+socket.on("singlePlayRankings", rankings => {
+  rankingList.innerHTML = "";
+  rankingModal.classList.remove("hidden");
+
+  rankings.forEach((r, i) => {
+    const li = document.createElement("li");
+
+    const totalSec = Math.floor(r.playTime / 1000);
+    const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
+    const ss = String(totalSec % 60).padStart(2, "0");
+
+    let modeText =
+      r.mode === "number" ? "🔢 숫자" :
+      r.mode === "emoji"  ? "😀 이모지" :
+      "🖼 이미지";
+
+    li.textContent =
+      `${i + 1}위 | ${r.nickname} | ${r.turns}턴 | ${mm}:${ss} | ${modeText}`;
+
+    rankingList.appendChild(li);
+  });
+});
+
 /* ---------- 다시하기 ---------- */
 restartBtn.onclick = () => {
   resultDiv.classList.add("hidden");
