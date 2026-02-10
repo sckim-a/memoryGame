@@ -23,6 +23,12 @@ const roomTitle = document.getElementById("roomTitle");
 
 const rankingList = document.getElementById("ranking");
 const fireworksCanvas = document.getElementById("fireworks");
+
+const showRankingBtn = document.getElementById("showRankingBtn");
+const closeRankingBtn = document.getElementById("closeRankingBtn");
+const rankingModal = document.getElementById("rankingModal");
+const rankingList = document.getElementById("rankingList");
+
 const NICKNAME_KEY = "memorygame_nickname";
 
 /* ---------- 상태 ---------- */
@@ -297,6 +303,14 @@ leaveBtn.onclick = () => {
   roomDiv.classList.add("hidden");
   lobby.classList.remove("hidden");
 };
+
+showRankingBtn.addEventListener("click", () => {
+  socket.emit("getSinglePlayRankings");
+});
+
+closeRankingBtn.addEventListener("click", () => {
+  rankingModal.classList.add("hidden");
+});
 
 /* ---------- 폭죽 ---------- */
 function startFireworks() {
