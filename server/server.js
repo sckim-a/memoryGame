@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
+const { db } = require("./firebase");
 
 const app = express();
 const server = http.createServer(app);
@@ -300,6 +301,23 @@ io.on("connection", socket => {
        console.error("❌ ranking save error:", err);
      }
    });
+
+   socket.on("getSinglePlayRankings", async () => {
+     try {
+       const snapshot = await db
+         .collection("singlePlayRankings")
+         .orderBy("turns", "asc")
+         .orderBy("playTime", "asc")
+         .limit(50)
+         .get();
+   
+       const rankings = snapshot.docs.map(doc => doc.data());
+   
+       socket.emit("singlePlayRankings", rankings);
+     } catch (err) {
+       console.error("ranking load error", err);
+     }
+   });
       
 });
 
@@ -339,6 +357,7 @@ setInterval(() => {
 server.listen(PORT, () => {
   console.log("Server running on", PORT);
 });
+
 
 
 
