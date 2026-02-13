@@ -40,7 +40,7 @@ function createDeck(cardStyle, images = []) {
   }
 
   if (cardStyle === "number") {
-    values = Array.from({ length: 1 }, (_, i) => i + 1);
+    values = Array.from({ length: 24 }, (_, i) => i + 1);
   }
 
   if (cardStyle === "image") {
@@ -357,6 +357,7 @@ setInterval(() => {
 server.listen(PORT, () => {
   console.log("Server running on", PORT);
 });
+
 
 
 
