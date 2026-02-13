@@ -11,3 +11,6 @@ admin.initializeApp({
 const db = admin.firestore();
 
 module.exports = { admin, db };
+
+console.log("🔥 Firebase Project:", serviceAccount.project_id);
+
