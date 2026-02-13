@@ -275,6 +275,10 @@ socket.on("gameEnded", players => {
   }
 
   // 1️⃣ 1인 플레이만 서버 랭킹 저장
+  console.log("저장 시도 데이터:", {
+    turns: turnCount,
+    playTime: Date.now() - gameStartTime
+  });
   if (ranked.length === 1) {
     socket.emit("singlePlayGameEnd", {
       nickname: ranked[0].nickname,
