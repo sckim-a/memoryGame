@@ -231,9 +231,11 @@ socket.on("turnUpdate", data => {
   updateTurn(data.currentPlayer, data.turnCount, data.players);
 });
 
-function updateTurn(currentPlayer, turnCount, players) {
+function updateTurn(currentPlayer, newTurnCount, players) {
+  turnCount = newTurnCount;
+  
   turnInfo.textContent =
-    `턴 ${turnCount} / 현재 차례: ${players[currentPlayer].nickname}`;
+    `턴 ${newTurnCount} / 현재 차례: ${players[currentPlayer].nickname}`;
 
   scoreDiv.innerHTML = "";
   playersDiv.innerHTML = "";
